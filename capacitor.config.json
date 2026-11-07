@@ -1,6 +1,6 @@
 {
   "appId": "com.xianguo.tledger",
-  "appName": "先沽后卖",
+  "appName": "先沽后补",
   "webDir": "www",
   "server": {
     "androidScheme": "https"

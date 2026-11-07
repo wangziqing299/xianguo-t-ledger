@@ -2,7 +2,7 @@
   "name": "xianguo-t-ledger",
   "version": "1.0.0",
   "private": true,
-  "description": "先沽后卖 · A股做T账本（离线单页应用 / Android WebView 壳）",
+  "description": "先沽后补 · A股做T账本（离线单页应用 / Android WebView 壳）",
   "scripts": {
     "sync": "cap sync android",
     "open:android": "cap open android"

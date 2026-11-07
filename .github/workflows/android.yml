@@ -64,7 +64,7 @@ jobs:
             gh release upload latest xianguo-t-ledger-debug.apk --clobber
           else
             gh release create latest xianguo-t-ledger-debug.apk \
-              --title "先沽后卖 · 最新 APK" \
+              --title "先沽后补 · 最新 APK" \
               --notes "调试签名 APK，个人侧载使用。数据仅保存在手机本机，不上传服务器。" \
               --latest
           fi

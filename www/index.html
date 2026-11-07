@@ -1937,7 +1937,7 @@ function exportJSON(){
     const a=document.createElement('a');
     const url=URL.createObjectURL(blob);
     a.href=url;
-    a.download='先沽后卖-备份-'+todayLocal()+'.json';
+    a.download='先沽后补-备份-'+todayLocal()+'.json';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1200);
     toast('已导出备份');
