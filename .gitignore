@@ -1,0 +1,22 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Android / Gradle build outputs
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/capacitor-cordova-android-plugins/
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/app/src/main/res/xml/config.xml
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# macOS
+.DS_Store
+*.log

@@ -1,0 +1,2093 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>先沽后补 · A股做T账本</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --ink:#0b1220; --ink2:#334155; --muted:#6b7a90; --line:#e4e9f0;
+    --bg1:#f6f8fc; --bg2:#eef2f9; --card:#fff;
+    --up:#dc2626; --down:#0f9960; --brand:#2f56d9; --brand2:#1b3aa8;
+    --brand-soft:#eef2ff; --warn:#b45309; --warnbg:#fff7ed;
+    --radius:16px;
+    --num:-apple-system,"SF Mono",ui-monospace,"PingFang SC",monospace;
+  }
+  html,body{min-height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+    background:linear-gradient(170deg,var(--bg1) 0%,var(--bg2) 100%);
+    color:var(--ink); padding:calc(24px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(46px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left)); min-height:100%;
+    -webkit-font-smoothing:antialiased; font-size:13px; line-height:1.6;
+  }
+  .wrap{max-width:1440px;margin:0 auto}
+  .up{color:var(--up)!important}
+  .down{color:var(--down)!important}
+  .muted{color:var(--muted)}
+  .mono{font-family:var(--num);font-variant-numeric:tabular-nums}
+
+  /* header */
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+  .brand{display:flex;gap:13px;align-items:center;min-width:0}
+  .mark{
+    width:46px;height:46px;border-radius:14px;flex:0 0 auto;
+    background:linear-gradient(145deg,#2f56d9,#1b3aa8);
+    color:#fff;display:grid;place-items:center;font-weight:700;font-size:20px;
+    box-shadow:0 8px 20px -8px rgba(47,86,217,.65);letter-spacing:-.5px;
+  }
+  h1{font-size:21px;font-weight:650;letter-spacing:-.3px;line-height:1.25;display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+  h1 .sub-mark{font-size:12px;color:var(--muted);font-weight:500;letter-spacing:0}
+  .brand p{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .actions{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{
+    padding:8px 13px;border-radius:10px;border:1px solid var(--line);background:#fff;
+    font-size:12.5px;color:var(--ink2);cursor:pointer;font-family:inherit;font-weight:500;
+    transition:.16s;white-space:nowrap;line-height:1.4;
+  }
+  .btn:hover{background:#f8fafc;border-color:#cfd8e6;transform:translateY(-1px)}
+  .btn:active{transform:translateY(0)}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  .btn.primary{background:#0b1220;border-color:#0b1220;color:#fff}
+  .btn.primary:hover{background:#1c2740}
+  .btn.small{padding:5px 10px;font-size:11.5px;border-radius:8px}
+  .btn.ghost{color:var(--muted)}
+  .btn.danger{color:#b91c1c;border-color:#f3d4d4}
+  .btn.danger:hover{background:#fff5f5}
+  .link{border:0;background:none;color:var(--brand);font-size:11.5px;cursor:pointer;font-family:inherit;text-decoration:none;border-bottom:1px solid rgba(47,86,217,.3);padding:0 0 1px}
+  .link:hover{color:var(--brand2)}
+  .link:disabled{opacity:.45;cursor:not-allowed;border-bottom-color:transparent}
+
+  /* layout */
+  .layout{display:grid;grid-template-columns:400px minmax(0,1fr);gap:18px;align-items:start}
+  .main{display:grid;gap:16px;min-width:0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);min-width:0;
+    box-shadow:0 1px 2px rgba(16,24,40,.04),0 14px 34px -22px rgba(16,24,40,.22);
+    padding:16px 18px}
+  .card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .card-head h2{font-size:13px;font-weight:650;color:var(--ink2);letter-spacing:.2px;display:flex;align-items:center;gap:8px}
+  .card-head .head-right{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .badge{font-size:10.5px;color:#2a4bc4;background:var(--brand-soft);padding:3px 9px;border-radius:20px;font-weight:600;white-space:nowrap}
+  .tag{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:20px;background:#eef2ff;color:#3730a3;margin-left:4px;vertical-align:1px;font-weight:600}
+  .tag.gray{background:#f1f5f9;color:#64748b}
+  .tag.green{background:#ecfdf5;color:#047857}
+  .tag.amber{background:#fffbeb;color:#b45309}
+
+  /* kpi */
+  .global-warn{display:none;background:#fff5f5;border:1px solid #f3d4d4;border-left:3px solid var(--up);color:#b91c1c;
+    padding:9px 13px;border-radius:10px;margin-bottom:11px;font-size:12px;line-height:1.65}
+  .global-warn.show{display:block}
+  .kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:16px}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:13px;padding:11px 13px;min-width:0;
+    box-shadow:0 1px 2px rgba(16,24,40,.03)}
+  .kpi .k{font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.2px;display:flex;align-items:center;gap:4px}
+  .kpi .v{font-size:18px;font-weight:650;letter-spacing:-.3px;font-family:var(--num);font-variant-numeric:tabular-nums;line-height:1.35;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .kpi .v small{font-size:10.5px;font-weight:500;color:var(--muted);margin-left:2px}
+  .kpi .n{font-size:10.5px;color:var(--muted);margin-top:2px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .kpi .n .up,.kpi .n .down{font-weight:600}
+
+  /* planner */
+  .planner{padding:18px}
+  .pos-strip{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:11px;color:var(--muted);line-height:1.7}
+  .pos-strip b{color:var(--ink2);font-family:var(--num);font-variant-numeric:tabular-nums;font-weight:600}
+  .active-banner{display:none;background:#eef2ff;border:1px solid #dbe4ff;border-radius:10px;padding:9px 11px;margin-top:9px;font-size:11px;color:#2a4bc4;line-height:1.65}
+  .active-banner.show{display:block}
+  .active-banner b{font-weight:650}
+  .plan-sec{margin-top:14px;padding-top:13px;border-top:1px dashed var(--line)}
+  .sec{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:650;color:var(--ink2);margin-bottom:9px;letter-spacing:.2px}
+  .sec i{width:18px;height:18px;border-radius:50%;background:var(--brand-soft);color:#2a4bc4;font-style:normal;font-size:10.5px;display:grid;place-items:center;font-weight:700;flex:0 0 auto}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .field{display:block;min-width:0}
+  .field>span{display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px}
+  .field input{
+    width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fbfcfe;
+    font-size:14px;font-family:var(--num);font-variant-numeric:tabular-nums;color:var(--ink);
+    transition:.15s;font-weight:500;min-width:0;
+  }
+  .field input:focus{outline:none;border-color:#9db4ff;background:#fff;box-shadow:0 0 0 3px rgba(47,86,217,.11)}
+  .field input:disabled{background:#f1f5f9;color:var(--muted);cursor:not-allowed}
+  .field input::-webkit-outer-spin-button,.field input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .field input[type=number]{-moz-appearance:textfield;appearance:textfield}
+  .readonly{min-height:35px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#f1f5f9;font-size:10.5px;color:var(--ink2);line-height:1.5;font-family:inherit;overflow:hidden}
+  .check{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--muted);cursor:pointer;user-select:none}
+  .check input{accent-color:var(--brand);width:13px;height:13px;flex:0 0 auto}
+  .inline-hint{font-size:10.5px;color:var(--muted);margin-top:5px;line-height:1.55;min-height:15px}
+  .inline-hint .up,.inline-hint .down{font-weight:600}
+
+  .stages{display:grid;grid-template-columns:1fr 16px 1fr 16px 1fr;align-items:stretch;gap:4px;margin-top:14px}
+  .stages.two{grid-template-columns:1fr 16px 1fr}
+  .stage{min-width:0;padding:11px 12px 12px;border-radius:12px;background:#f8fafc;border:1px solid var(--line);position:relative}
+  .stage .lab{font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.2px;margin-bottom:5px}
+  .stage .cost{font-size:22px;font-weight:700;letter-spacing:-.8px;font-family:var(--num);font-variant-numeric:tabular-nums;line-height:1.15;color:var(--ink);word-break:break-all}
+  .stage .weighted{font-size:10px;color:var(--muted);margin-top:2px;font-family:var(--num);font-variant-numeric:tabular-nums}
+  .stage .meta{font-size:10px;color:var(--muted);margin-top:6px;line-height:1.55;font-variant-numeric:tabular-nums}
+  .stage.final{background:linear-gradient(175deg,#fff7f7,#fff);border-color:#f6d3d3;box-shadow:0 8px 22px -18px rgba(220,38,38,.5)}
+  .stage.final .cost{color:var(--up)}
+  .stage .delta{font-size:10px;margin-top:6px;font-weight:600;font-family:var(--num);font-variant-numeric:tabular-nums}
+  .stage .delta .flat{color:var(--muted);font-weight:500}
+  .arrow{display:grid;place-items:center;color:#c3cddc;font-size:14px;user-select:none}
+
+  .metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+  .metric{min-width:0;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:#fff}
+  .metric em{display:block;font-style:normal;font-size:10px;color:var(--muted);margin-bottom:2px;line-height:1.4}
+  .metric strong{font-size:14.5px;font-weight:650;font-variant-numeric:tabular-nums;font-family:var(--num);letter-spacing:-.2px;white-space:nowrap}
+  .metric small{font-size:9.5px;color:var(--muted);font-weight:400;margin-left:2px}
+  .metric .sub{display:block;font-size:9.5px;color:var(--muted);margin-top:1px;line-height:1.4}
+
+  .warn-box{display:none;margin-top:10px;padding:9px 11px;border-radius:10px;background:var(--warnbg);
+    border:1px solid #f3e0bd;border-left:3px solid var(--warn);font-size:11px;color:#7c4a03;line-height:1.65}
+  .warn-box.show{display:block}
+  .warn-box .warn-item{color:#b91c1c}
+  .warn-box .note-item{color:#7c4a03}
+  .warn-box div+div{margin-top:2px}
+
+  .plan-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .plan-actions .btn{flex:1 1 auto;justify-content:center;text-align:center}
+  .hint{font-size:10.5px;color:var(--muted);line-height:1.7;margin-top:10px}
+  .hint b{color:var(--ink2);font-weight:600}
+  .calc-detail{margin-top:10px;font-size:11px;color:var(--muted)}
+  .calc-detail summary{cursor:pointer;color:var(--brand);font-weight:600;font-size:11px;outline:none;user-select:none}
+  .calc-detail summary:hover{color:var(--brand2)}
+  .calc-table{width:100%;margin-top:6px;border-collapse:collapse;font-size:10.5px}
+  .calc-table td{padding:3px 4px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+  .calc-table td:first-child{color:var(--ink2);width:38%}
+  .calc-table td:last-child{text-align:right;font-family:var(--num);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink2)}
+
+  /* params */
+  .params{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 14px}
+  .p{min-width:0}
+  .p label{display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px}
+  .p input{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px;
+    font-variant-numeric:tabular-nums;background:#fff;font-family:var(--num);color:var(--ink);min-width:0}
+  .p input:focus{outline:none;border-color:#9db4ff;box-shadow:0 0 0 3px rgba(47,86,217,.1)}
+  .params.real .fixed-only,.params.fixed .real-only{opacity:.35}
+  .params.real .fixed-only input,.params.fixed .real-only input{pointer-events:none;background:#f8fafc}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+  .seg button{border:0;background:transparent;padding:5px 10px;font-size:11px;cursor:pointer;font-family:inherit;color:var(--muted);white-space:nowrap}
+  .seg button.on{background:var(--brand);color:#fff}
+  .fee-hint{font-size:10.5px;color:var(--muted);line-height:1.7;margin-top:9px}
+  .fee-hint b{color:var(--ink2);font-weight:600}
+
+  /* chart */
+  .chart-card{padding:16px 18px 12px}
+  .legend{display:flex;gap:14px;font-size:10.5px;color:var(--muted);flex-wrap:wrap}
+  .legend span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  .legend i{display:inline-block;width:15px;height:2.5px;border-radius:2px;vertical-align:middle}
+  #chart{width:100%;height:auto;min-height:230px;display:block;margin-top:6px;overflow:visible}
+  .chart-foot{font-size:10.5px;color:var(--muted);line-height:1.7;margin-top:4px}
+  .chart-foot b{color:var(--ink2);font-weight:600}
+
+  /* ledger */
+  .table-wrap{max-height:470px;overflow:auto;border:1px solid #eef0f3;border-radius:10px;margin-top:8px;-webkit-overflow-scrolling:touch;
+    scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent}
+  .table-wrap::-webkit-scrollbar{height:8px;width:8px}
+  .table-wrap::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px}
+  .table-wrap::-webkit-scrollbar-track{background:transparent}
+  table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+  .trades{min-width:936px;font-size:11.5px}
+  .trades th{color:var(--muted);font-weight:500;font-size:10px;text-align:right;background:#fafbfc;position:sticky;top:0;z-index:2;
+    padding:7px 7px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .trades th:first-child,.trades td:first-child{text-align:left}
+  .trades td{padding:5px 7px;text-align:right;border-bottom:1px solid #f0f2f5;white-space:nowrap;height:33px}
+  .trades tr:last-child td{border-bottom:none}
+  .trades tr:hover td{background:#fafcff}
+  .trades tr.init-row td{background:#fbfcfd;color:var(--muted);font-size:10.5px}
+  .trades tr.bad-row td{background:#fff5f5}
+  .trades td input,.trades td select{
+    width:100%;border:1px solid transparent;background:transparent;padding:3px 4px;
+    font:inherit;font-variant-numeric:tabular-nums;color:inherit;text-align:right;border-radius:5px;min-width:0;
+  }
+  .trades td input:hover,.trades td select:hover{border-color:#dfe3e8;background:#fff}
+  .trades td input:focus,.trades td select:focus{outline:none;border-color:var(--brand);background:#fff;box-shadow:0 0 0 2px rgba(47,86,217,.08)}
+  .trades td input[type=date]{text-align:left;min-width:92px}
+  .trades td select{min-width:52px}
+  .trades td input.num{min-width:64px}
+  .trades .del{color:#b9c0c8;cursor:pointer;font-size:15px;line-height:1;display:inline-block;padding:2px 6px;border-radius:5px;user-select:none}
+  .trades .del:hover{background:#f3f4f6;color:var(--up)}
+  .row-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
+  .table-hint{font-size:10.5px;color:var(--muted);line-height:1.7;margin-top:8px}
+  .table-hint b{color:var(--ink2);font-weight:600}
+
+  /* t+1 / open */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;min-width:0}
+  .t1-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid #f0f2f5;font-size:11.5px;line-height:1.6}
+  .t1-row:last-child{border-bottom:none}
+  .t1-date{color:var(--muted);font-family:var(--num);white-space:nowrap;min-width:78px}
+  .t1-main{flex:1 1 auto;color:var(--ink2)}
+  .t1-main b{font-family:var(--num);font-variant-numeric:tabular-nums;font-weight:600}
+  .t1-status{white-space:nowrap;font-weight:600;font-size:11px}
+  .t1-warn{margin-bottom:8px;padding:8px 10px;border-radius:8px;background:#fff7ed;border:1px solid #f3e0bd;color:#b45309;font-size:10.5px;line-height:1.65}
+  .t1-warn b{color:#92400e}
+  .t1-note{font-size:10.5px;color:var(--muted);line-height:1.65;margin-top:7px}
+  .empty{padding:18px 8px;text-align:center;color:#9aa3af;font-size:11.5px;line-height:1.7}
+  .open-round{border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:8px;background:#fafcff}
+  .open-round:last-child{margin-bottom:0}
+  .or-head{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:11.5px}
+  .or-head b{font-weight:650;color:var(--ink2)}
+  .or-body{font-size:10.5px;color:var(--muted);line-height:1.65;margin-top:4px}
+  .or-body b{color:var(--ink2);font-family:var(--num);font-variant-numeric:tabular-nums;font-weight:600}
+  .or-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:7px;flex-wrap:wrap}
+  .or-est{font-size:10.5px;color:var(--muted)}
+  .or-est b{font-family:var(--num);font-variant-numeric:tabular-nums;font-weight:600}
+
+  /* rounds */
+  .round-stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-bottom:10px}
+  .rs{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;min-width:0}
+  .rs .k{font-size:10px;color:var(--muted);white-space:nowrap}
+  .rs .v{font-size:14px;font-weight:650;font-family:var(--num);font-variant-numeric:tabular-nums;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .round-table{min-width:980px;font-size:11.5px}
+  .round-table th{color:var(--muted);font-weight:500;font-size:10px;text-align:right;background:#fafbfc;position:sticky;top:0;z-index:2;padding:7px 7px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .round-table th:first-child,.round-table td:first-child{text-align:left}
+  .round-table td{padding:6px 7px;text-align:right;border-bottom:1px solid #f0f2f5;white-space:nowrap}
+  .round-table tr:hover td{background:#fafcff}
+  .round-table tr:last-child td{border-bottom:none}
+  .recon{font-size:10.5px;color:var(--muted);line-height:1.7;margin-top:8px}
+  .recon b{color:var(--ink2);font-weight:600;font-family:var(--num);font-variant-numeric:tabular-nums}
+
+  /* fee compare */
+  #feeCompare{overflow-x:auto}
+  .fee-table{min-width:640px;font-size:11.5px}
+  .fee-table th{color:var(--muted);font-weight:500;font-size:10px;text-align:right;background:#fafbfc;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .fee-table th:first-child,.fee-table td:first-child{text-align:left}
+  .fee-table td{padding:7px 8px;text-align:right;border-bottom:1px solid #f0f2f5;white-space:nowrap}
+  .fee-table tr:last-child td{border-bottom:none}
+  .fee-table tr.on-row td{background:#f4f7ff}
+  .fee-table td:first-child{font-weight:600;color:var(--ink2)}
+  .fee-note{font-size:10.5px;color:var(--muted);line-height:1.7;margin-top:8px}
+  .fee-note b{color:var(--ink2);font-weight:600}
+
+  .backup-modal{position:fixed;inset:0;background:rgba(11,18,32,.45);display:none;align-items:center;justify-content:center;padding:18px;z-index:120}
+  .backup-modal.show{display:flex}
+  .backup-box{background:#fff;border-radius:14px;padding:16px;width:min(620px,100%);max-height:86vh;display:flex;flex-direction:column;box-shadow:0 24px 60px -20px rgba(0,0,0,.4)}
+  .backup-head{font-size:14px;font-weight:650;margin-bottom:6px;color:var(--ink2)}
+  .backup-hint{font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:8px}
+  #backupText{width:100%;height:240px;border:1px solid var(--line);border-radius:9px;padding:10px;font:12px var(--num);resize:vertical;outline:none;background:#fbfcfe;color:var(--ink)}
+  #backupText:focus{border-color:#9db4ff;box-shadow:0 0 0 3px rgba(47,86,217,.1);background:#fff}
+  .backup-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+  footer{margin-top:18px;font-size:10.5px;color:var(--muted);line-height:1.8;padding:0 2px}
+  footer b{color:var(--ink2);font-weight:600}
+
+  .toast{
+    position:fixed;left:50%;bottom:32px;transform:translate(-50%,14px);opacity:0;pointer-events:none;
+    background:#0b1220;color:#fff;padding:9px 17px;border-radius:10px;font-size:12px;z-index:99;
+    transition:.25s;box-shadow:0 12px 28px -10px rgba(0,0,0,.5);width:max-content;max-width:90vw;text-align:center;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  .toast.err{background:#b91c1c}
+
+  @media (max-width:1240px){
+    .kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .round-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+  }
+  @media (max-width:1120px){
+    .layout{grid-template-columns:1fr}
+    .planner{max-width:none}
+  }
+  @media (max-width:900px){
+    .grid2{grid-template-columns:1fr}
+    .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  }
+  @media (max-width:760px){
+    body{padding:calc(16px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(36px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left))}
+    .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .params{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .stages{grid-template-columns:1fr;gap:6px}
+    .stages.two{grid-template-columns:1fr}
+    .arrow{height:12px;font-size:0}
+    .arrow::after{content:'↓';font-size:12px;color:#c3cddc}
+    .stage .cost{font-size:23px}
+    h1{font-size:18px}
+    .round-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .card{padding:14px}
+    .planner{padding:15px}
+  }
+  @media (max-width:480px){
+    .kpis{grid-template-columns:1fr 1fr}
+    .kpi .v{font-size:15px}
+    .metrics{grid-template-columns:1fr}
+    .actions{width:100%}
+    .actions .btn{flex:1 1 auto}
+    .top{gap:10px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="mark">沽</div>
+      <div>
+        <h1>先沽后补 <span class="sub-mark">A股做T账本</span></h1>
+        <p>先卖出，再买回 · 卖出 0 股可只记买入 · 真实费率 · 总资产曲线 · 交易流水</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btnDemo">示例</button>
+      <button class="btn" id="btnExport">导出</button>
+      <button class="btn" id="btnImport">导入</button>
+      <button class="btn danger" id="btnClear">清空</button>
+      <input type="file" id="fileImport" accept=".json,application/json" style="display:none">
+    </div>
+  </header>
+
+  <div class="global-warn" id="globalWarn"></div>
+  <section class="kpis" id="kpis"></section>
+
+  <div class="layout">
+
+    <aside class="card planner">
+      <div class="card-head">
+        <h2>本轮做T</h2>
+        <div class="head-right">
+          <span class="badge" id="planBadge">先卖后买</span>
+          <button class="link" id="btnPlanDemo">填示例</button>
+        </div>
+      </div>
+
+      <div class="pos-strip" id="posStrip">正在读取持仓…</div>
+      <div class="active-banner" id="activeBanner"></div>
+
+      <section class="plan-sec" id="secSell">
+        <div class="sec"><i>1</i><span id="sellTitle">卖出（沽出）</span></div>
+        <div class="row2">
+          <label class="field"><span>卖出价（元）</span><input id="ps" type="number" step="0.01" min="0" placeholder="如 12.70"></label>
+          <label class="field"><span>卖出股数</span><input id="qs" type="number" step="100" min="0" placeholder="如 2000"></label>
+        </div>
+        <div class="inline-hint" id="sellHint"></div>
+      </section>
+
+      <section class="plan-sec" id="secBuy">
+        <div class="sec"><i>2</i><span id="buyTitle">买回（补回）</span></div>
+        <div class="row2">
+          <label class="field"><span>买回价（元）</span><input id="pb" type="number" step="0.01" min="0" placeholder="如 12.40"></label>
+          <label class="field"><span>买回股数</span><input id="qb" type="number" step="100" min="0" placeholder="如 2000"></label>
+        </div>
+        <label class="check"><input type="checkbox" id="syncQty" checked> <span id="syncText">买回数量与卖出同步（数量不等时视为加减仓）</span></label>
+        <div class="inline-hint" id="buyHint"></div>
+      </section>
+
+      <section class="plan-sec" id="secDate">
+        <div class="sec"><i>3</i>日期与费率</div>
+        <div class="row2">
+          <label class="field"><span>交易日期</span><input id="planDate" type="date"></label>
+          <div class="field"><span>当前费率口径</span><div class="readonly" id="feeSummary"></div></div>
+        </div>
+        <div class="inline-hint" id="dateHint"></div>
+      </section>
+
+      <div class="stages" id="planStages"></div>
+      <div class="metrics" id="planMetrics"></div>
+      <div class="warn-box" id="planWarn"></div>
+
+      <div class="plan-actions">
+        <button class="btn primary" id="btnRecordRound">记录整轮</button>
+        <button class="btn" id="btnRecordSell">只记卖出</button>
+        <button class="btn primary" id="btnRecordBuy" style="display:none">记录买回</button>
+        <button class="btn primary" id="btnRecordSellBack" style="display:none">记录卖出</button>
+        <button class="btn ghost" id="btnCancelBuy" style="display:none">取消补记</button>
+      </div>
+
+      <details class="calc-detail" id="calcDetail">
+        <summary>计算过程（可核对）</summary>
+        <div id="planCalc"></div>
+      </details>
+
+      <div class="hint">卖出的是<strong>昨日可卖底仓</strong>；当日买入的股份不可再卖。<strong>卖出股数填 0</strong> 时，右下按钮会变成“只记买入”，先记买入腿，之后在右侧“未平轮次”补记卖出。</div>
+    </aside>
+
+    <main class="main">
+
+      <section class="card">
+        <div class="card-head">
+          <h2>期初与费率参数</h2>
+          <div class="seg" id="feeModeSeg">
+            <button data-mode="real" class="on">实际佣金</button>
+            <button data-mode="fixed">固定佣金</button>
+          </div>
+        </div>
+        <div class="params real" id="params">
+          <div class="p"><label>初始持仓（股）</label><input id="p-shares" type="number" step="100" min="0"></div>
+          <div class="p"><label>初始成本价（元）</label><input id="p-cost" type="number" step="0.001" min="0"></div>
+          <div class="p"><label>初始现金（元）</label><input id="p-cash" type="number" step="100" min="0"></div>
+          <div class="p"><label>期末市价（元）</label><input id="p-last" type="number" step="0.01" min="0"></div>
+          <div class="p real-only"><label>佣金（万分之）</label><input id="p-comm" type="number" step="0.1" min="0"></div>
+          <div class="p real-only"><label>最低佣金（元）</label><input id="p-min" type="number" step="1" min="0"></div>
+          <div class="p real-only"><label>印花税（‰，卖出）</label><input id="p-stamp" type="number" step="0.01" min="0"></div>
+          <div class="p real-only"><label>过户费（万分之）</label><input id="p-transfer" type="number" step="0.01" min="0"></div>
+          <div class="p fixed-only"><label>固定佣金（元/股）</label><input id="p-fixed" type="number" step="0.001" min="0"></div>
+          <div class="p"><label>买入单位（股）</label><input id="p-lot" type="number" step="100" min="1"></div>
+        </div>
+        <div class="fee-hint" id="feeHint"></div>
+      </section>
+
+      <section class="card chart-card">
+        <div class="card-head">
+          <h2>总资产曲线</h2>
+          <div class="legend">
+            <span><i style="background:#2f56d9"></i>策略总资产</span>
+            <span><i style="background:#dc2626"></i>买入持有基准</span>
+            <span><i style="background:#cbd5e1"></i>初始投入</span>
+          </div>
+        </div>
+        <svg id="chart" viewBox="0 0 1000 300" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="chart-foot" id="chartFoot"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>交易流水 <span class="tag" id="tradeCount">0 笔</span></h2>
+          <div class="row-actions" style="margin:0">
+            <button class="btn small" id="btnAddTrade">+ 添加一笔</button>
+            <button class="btn small ghost" id="btnClearTrades">清空流水</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="trades">
+            <thead><tr>
+              <th style="width:96px">日期</th>
+              <th style="width:50px">方向</th>
+              <th style="width:66px">价格</th>
+              <th style="width:70px">数量</th>
+              <th style="width:74px">成交额</th>
+              <th style="width:58px">费用</th>
+              <th style="width:64px">持仓</th>
+              <th style="width:68px" title="移动加权平均成本：只有买入会改变它，卖出不变">加权成本</th>
+              <th style="width:68px" title="(累计买入−累计卖出)÷持仓，即保本价">摊薄成本</th>
+              <th style="width:72px">现金</th>
+              <th style="width:78px">总资产</th>
+              <th style="width:46px">轮次</th>
+              <th style="width:24px"></th>
+            </tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+        <div class="table-hint">费用按当前费率口径自动计算；切换“实际/固定”会重算全部流水。表格里的总资产按<strong>该笔成交价</strong>估值，顶部 KPI 按期末市价估值。<strong>表格可左右滚动</strong>查看全部列；行尾 × 删除。</div>
+      </section>
+
+      <div class="grid2">
+        <section class="card">
+          <div class="card-head"><h2>T+1 可卖校验</h2></div>
+          <div id="t1"></div>
+        </section>
+        <section class="card">
+          <div class="card-head"><h2>未平轮次 <span class="tag" id="openCount">0</span></h2></div>
+          <div id="openRounds"></div>
+        </section>
+      </div>
+
+      <section class="card">
+        <div class="card-head"><h2>T轮次统计</h2></div>
+        <div class="round-stats" id="roundStats"></div>
+        <div class="table-wrap" style="max-height:330px">
+          <table class="round-table">
+            <thead><tr>
+              <th style="width:52px">轮次</th>
+              <th style="width:88px">日期</th>
+              <th>卖出</th>
+              <th>买入</th>
+              <th style="width:58px">配对</th>
+              <th style="width:64px">费用</th>
+              <th style="width:82px">净收益</th>
+              <th style="width:76px">成本影响</th>
+              <th style="width:56px">交易日</th>
+              <th style="width:66px">状态</th>
+            </tr></thead>
+            <tbody id="roundList"></tbody>
+          </table>
+        </div>
+        <div class="recon" id="recon"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>费率对照</h2></div>
+        <div id="feeCompare"></div>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <b>口径说明：</b>“加权成本”是移动加权平均买入成本，卖出不变；“摊薄成本”是卖出回款冲减后的保本价。<br>
+    <b>费率说明：</b>实际佣金 = 佣金 max(成交额×万分之, 最低佣金) + 印花税（仅卖出）+ 过户费（双边，按成交额×万分之）。过户费 0.1‱ = 0.001%。<br>
+    <b>数据：</b>仅保存在本机浏览器；换浏览器/清缓存前请先“导出”备份。本工具用于个人复盘，不构成投资建议。
+  </footer>
+</div>
+
+<div class="backup-modal" id="backupModal">
+  <div class="backup-box">
+    <div class="backup-head">粘贴备份 JSON</div>
+    <div class="backup-hint">把之前「复制备份」得到的整段 JSON 粘贴到这里，点「导入」。</div>
+    <textarea id="backupText" placeholder="粘贴备份 JSON…"></textarea>
+    <div class="backup-actions">
+      <button class="btn" id="backupCancel">取消</button>
+      <button class="btn primary" id="backupOk">导入</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ===================== 常量与工具 ===================== */
+const KEY = 'xianguo-t.v1';
+const DEFAULTS = {
+  feeMode: 'real',
+  commission: 2.5,
+  minCommission: 5,
+  stamp: 0.5,
+  transfer: 0.1,
+  fixedPerShare: 0.04,
+  lotSize: 100,
+  lastPrice: 0
+};
+let state = null;
+let saveTimer = null;
+let toastTimer = null;
+let storageOk = true;
+
+const $ = id => document.getElementById(id);
+function num(v){ const n = parseFloat(String(v==null?'':v).replace(/,/g,'')); return Number.isFinite(n)?n:0; }
+function int(v){ return Math.max(0, Math.round(num(v))); }
+function round2(v){ return Math.round((v + (v>=0?Number.EPSILON:-Number.EPSILON))*100)/100; }
+function fmt(v,d=2){ if(!Number.isFinite(v)) return '—'; const x=Math.abs(v)<5e-9?0:v; return x.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function fmt0(v){ return fmt(v,0); }
+function p4(v){ return fmt(v,4); }
+function signed(v,d=2){ if(!Number.isFinite(v)) return '—'; return (v>5e-9?'+':'')+fmt(v,d); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function todayLocal(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function nextWeekday(dateStr){
+  const d=new Date((validDate(dateStr)?dateStr:todayLocal())+'T00:00:00');
+  do{ d.setDate(d.getDate()+1); }while(d.getDay()===0||d.getDay()===6);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function planDayDefault(){ return isWeekend(todayLocal())?nextWeekday(todayLocal()):todayLocal(); }
+function tradingDaysBetween(a,b){
+  if(!validDate(a)||!validDate(b)||b<a) return null;
+  const d=new Date(a+'T00:00:00'), end=new Date(b+'T00:00:00');
+  let n=0;
+  while(d<end){ d.setDate(d.getDate()+1); if(d.getDay()!==0&&d.getDay()!==6) n++; }
+  return n;
+}
+function validDate(s){ return typeof s==='string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(new Date(s+'T00:00:00').getTime()); }
+function isWeekend(s){ if(!validDate(s)) return false; const d=new Date(s+'T00:00:00'); return d.getDay()===0||d.getDay()===6; }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function pnlCls(v){ return Math.abs(v)<5e-9?'':(v>0?'up':'down'); }
+function costCls(v){ return Math.abs(v)<5e-9?'':(v<0?'up':'down'); }
+function byDateCreated(a,b){ return (a.date||'').localeCompare(b.date||'') || ((a.createdAt||0)-(b.createdAt||0)); }
+function sortTrades(){ if(state && Array.isArray(state.trades)) state.trades.sort(byDateCreated); }
+function firstWarn(P){ const w=(P.warnings||[]).find(x=>x.level==='warn'); return w?w.text:'请检查输入'; }
+function isNativeApp(){ return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); }
+function nextRoundId(){
+  let max=0;
+  state.trades.forEach(t=>{ const m=/^T(\d+)$/.exec(t.roundId||''); if(m) max=Math.max(max,+m[1]); });
+  return 'T'+(max+1);
+}
+
+/* ===================== 示例数据 ===================== */
+function demoState(){
+  const mk=(id,date,side,price,qty,roundId,createdAt)=>({id,date,side,price,qty,roundId,createdAt,actualFee:null,dir:'sell-first'});
+  return {
+    v:1,
+    init:{shares:17200,cost:12.90,cash:30000},
+    settings:Object.assign({},DEFAULTS,{lastPrice:12.90}),
+    trades:[
+      mk('d1','2026-11-03','sell',13.20,2000,'T1',1001),
+      mk('d2','2026-11-03','buy',12.80,2000,'T1',1002),
+      mk('d3','2026-11-04','sell',12.70,2000,'T2',1003),
+      mk('d4','2026-11-04','buy',12.40,2000,'T2',1004),
+      mk('d5','2026-11-06','sell',12.90,1000,'T3',1005),
+      mk('d6','2026-11-06','buy',12.60,1000,'T3',1006)
+    ],
+    plan:{date:planDayDefault(),ps:12.90,qs:2000,pb:12.40,qb:2000},
+    activeRoundId:null
+  };
+}
+
+/* ===================== 状态规范与持久化 ===================== */
+function normalize(raw){
+  const s=(raw && typeof raw==='object')?raw:{};
+  const init=s.init||{};
+  const settings=Object.assign({},DEFAULTS,s.settings||{});
+  const trades=Array.isArray(s.trades)?s.trades.filter(t=>t && (t.side==='buy'||t.side==='sell')).map((t,i)=>({
+    id:t.id!=null?String(t.id):('x'+i+'_'+Math.random().toString(36).slice(2,6)),
+    date:validDate(t.date)?t.date:todayLocal(),
+    side:t.side==='sell'?'sell':'buy',
+    price:Math.max(0,num(t.price)),
+    qty:Math.max(0,int(t.qty)),
+    roundId:t.roundId?String(t.roundId):null,
+    createdAt:Number.isFinite(+t.createdAt)?+t.createdAt:(i+1),
+    actualFee:(t.actualFee===null||t.actualFee===undefined||t.actualFee==='')?null:Math.max(0,num(t.actualFee)),
+    dir:t.dir==='buy-first'?'buy-first':(t.dir==='sell-first'?'sell-first':null)
+  })):[];
+  settings.feeMode=settings.feeMode==='fixed'?'fixed':'real';
+  settings.commission=Math.max(0,num(settings.commission));
+  settings.minCommission=Math.max(0,num(settings.minCommission));
+  settings.stamp=Math.max(0,num(settings.stamp));
+  settings.transfer=Math.max(0,num(settings.transfer));
+  settings.fixedPerShare=Math.max(0,num(settings.fixedPerShare));
+  settings.lotSize=Math.max(1,int(settings.lotSize)||100);
+  settings.lastPrice=Math.max(0,num(settings.lastPrice));
+  const plan=s.plan||{};
+  const st={
+    v:1,
+    init:{shares:Math.max(0,int(init.shares)),cost:Math.max(0,num(init.cost)),cash:num(init.cash)},
+    settings,
+    trades,
+    plan:{
+      date:validDate(plan.date)?plan.date:todayLocal(),
+      ps:Math.max(0,num(plan.ps)),
+      qs:Math.max(0,int(plan.qs)),
+      pb:Math.max(0,num(plan.pb)),
+      qb:Math.max(0,int(plan.qb))
+    },
+    activeRoundId:s.activeRoundId?String(s.activeRoundId):null
+  };
+  if(st.settings.lastPrice<=0){
+    const last=st.trades.length?st.trades[st.trades.length-1].price:0;
+    st.settings.lastPrice=last>0?last:st.init.cost;
+  }
+  return st;
+}
+function loadState(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(!raw) return null;
+    const parsed=JSON.parse(raw);
+    if(!parsed || typeof parsed!=='object') return null;
+    return normalize(parsed);
+  }catch(e){ return null; }
+}
+function saveNow(){
+  if(!state) return;
+  try{ localStorage.setItem(KEY,JSON.stringify(state)); }
+  catch(e){ if(storageOk){ storageOk=false; toast('浏览器禁用了本地存储，请用“导出”备份','err'); } }
+}
+function save(){ clearTimeout(saveTimer); saveTimer=setTimeout(saveNow,180); }
+
+/* ===================== 计算内核 ===================== */
+function feeParts(side,price,qty,s){
+  s=s||{};
+  qty=int(qty); price=num(price);
+  const fixed=!!(s.feeMode==='fixed');
+  if(qty<=0||price<=0) return {comm:0,stamp:0,transfer:0,total:0,fixed};
+  const amount=price*qty;
+  if(fixed){
+    const total=round2(qty*num(s.fixedPerShare));
+    return {comm:total,stamp:0,transfer:0,total,fixed:true};
+  }
+  const comm=round2(Math.max(amount*num(s.commission)/10000,num(s.minCommission)));
+  const stamp=round2(side==='sell'?amount*num(s.stamp)/1000:0);
+  const transfer=round2(amount*num(s.transfer)/10000);
+  return {comm,stamp,transfer,total:round2(comm+stamp+transfer),fixed:false};
+}
+function feeOf(side,price,qty,s){ return feeParts(side,price,qty,s).total; }
+
+function computePosition(init,trades,s){
+  const settings=s||{};
+  let shares=Math.max(0,int(init&&init.shares));
+  let cash=num(init&&init.cash);
+  let weighted=num(init&&init.cost);
+  let dilutedTotal=shares*weighted;
+  let totalFee=0,totalBuy=0,totalSell=0,minCash=cash,invalid=false;
+  const rows=[];
+  if(shares>0&&weighted<=0) invalid=true;
+  (trades||[]).forEach((t,i)=>{
+    const qty=Math.max(0,int(t.qty));
+    const price=num(t.price);
+    const amount=price*qty;
+    const fee=(t.actualFee!==null&&t.actualFee!==undefined&&t.actualFee!=='')
+      ? round2(Math.max(0,num(t.actualFee)))
+      : feeOf(t.side,price,qty,settings);
+    const prevShares=shares;
+    const dilutedBefore=prevShares>0?dilutedTotal/prevShares:0;
+    const weightedBefore=prevShares>0?weighted:0;
+    if(t.side==='buy'){
+      cash-=amount+fee;
+      shares+=qty;
+      dilutedTotal+=amount+fee;
+      weighted=shares>0?(weighted*prevShares+amount+fee)/shares:0;
+      totalBuy+=amount;
+    }else{
+      cash+=amount-fee;
+      shares-=qty;
+      dilutedTotal-=(amount-fee);
+      if(shares<=0) weighted=0;
+      totalSell+=amount;
+    }
+    totalFee+=fee;
+    if(cash<minCash) minCash=cash;
+    if(shares<0||qty<=0||price<=0) invalid=true;
+    const diluted=shares>0?dilutedTotal/shares:0;
+    rows.push({
+      ...t,i,qty,price,amount,fee,shares,cash,
+      weighted:shares>0?weighted:0,
+      diluted,
+      dilutedBefore,
+      weightedBefore,
+      asset:cash+shares*price
+    });
+  });
+  const lastPrice=num(settings.lastPrice)>0?num(settings.lastPrice):(rows.length?rows[rows.length-1].price:num(init&&init.cost));
+  const marketValue=shares*lastPrice;
+  const endAsset=cash+marketValue;
+  const startAsset=num(init&&init.cash)+Math.max(0,int(init&&init.shares))*num(init&&init.cost);
+  const pnl=endAsset-startAsset;
+  const pnlPct=startAsset?pnl/startAsset*100:0;
+  const benchEnd=num(init&&init.cash)+Math.max(0,int(init&&init.shares))*lastPrice;
+  const benchPnl=benchEnd-startAsset;
+  const alpha=pnl-benchPnl;
+  const floatPnl=shares>0?marketValue-shares*weighted:0;
+  const floatPnlDiluted=shares>0?marketValue-dilutedTotal:0;
+  const peakNeed=Math.max(0,-minCash);
+  return {rows,shares,cash,weighted:shares>0?weighted:0,diluted:shares>0?dilutedTotal/shares:0,
+    dilutedTotal,totalFee,totalBuy,totalSell,marketValue,endAsset,startAsset,pnl,pnlPct,
+    benchPnl,alpha,floatPnl,floatPnlDiluted,peakNeed,invalid,lastPrice};
+}
+
+function availabilityAt(init,trades,date){
+  const ds=validDate(date)?date:todayLocal();
+  let shares=Math.max(0,int(init&&init.shares));
+  let soldOnDate=0;
+  const sorted=(trades||[]).slice().sort(byDateCreated);
+  for(const t of sorted){
+    const d=validDate(t.date)?t.date:todayLocal();
+    if(d<ds){
+      shares+=t.side==='buy'?Math.max(0,int(t.qty)):-Math.max(0,int(t.qty));
+    }else if(d===ds){
+      if(t.side==='sell') soldOnDate+=Math.max(0,int(t.qty));
+    }
+  }
+  return Math.max(0,shares-soldOnDate);
+}
+
+function breakevenFromSell(netSellPerShare,q,s){
+  q=int(q); const net=num(netSellPerShare);
+  if(q<=0||net<=0) return 0;
+  let pb=net;
+  for(let i=0;i<40;i++){
+    const feeB=feeOf('buy',pb,q,s);
+    const next=net-feeB/q;
+    if(!Number.isFinite(next)) return 0;
+    if(Math.abs(next-pb)<1e-6){ pb=next; break; }
+    pb=next;
+  }
+  return pb>0?pb:0;
+}
+function breakevenBuy(ps,q,s){
+  q=int(q); ps=num(ps);
+  if(q<=0||ps<=0) return 0;
+  const feeS=feeOf('sell',ps,q,s);
+  return breakevenFromSell(ps-feeS/q,q,s);
+}
+function breakevenSell(pb,q,s){
+  q=int(q); pb=num(pb);
+  if(q<=0||pb<=0) return 0;
+  const buyFee=feeOf('buy',pb,q,s);
+  let ps=pb;
+  for(let i=0;i<40;i++){
+    const sellFee=feeOf('sell',ps,q,s);
+    const next=pb+(buyFee+sellFee)/q;
+    if(!Number.isFinite(next)) return 0;
+    if(Math.abs(next-ps)<1e-6){ ps=next; break; }
+    ps=next;
+  }
+  return ps>0?ps:0;
+}
+
+function computePlan(pos,plan,s,available){
+  const settings=s||{};
+  const qs=Math.max(0,int(plan&&plan.qs));
+  const qb=Math.max(0,int(plan&&plan.qb));
+  const ps=num(plan&&plan.ps);
+  const pb=num(plan&&plan.pb);
+  const date=validDate(plan&&plan.date)?plan.date:todayLocal();
+  const lot=Math.max(1,int(settings.lotSize)||100);
+  const sell=feeParts('sell',ps,qs,settings);
+  const buy=feeParts('buy',pb,qb,settings);
+  const grossSell=ps*qs;
+  const grossBuy=pb*qb;
+  const proceeds=grossSell-sell.total;
+  const outlay=grossBuy+buy.total;
+  const netCash=proceeds-outlay;
+  const remainQty=pos.shares-qs;
+  const remainDilutedTotal=pos.dilutedTotal-proceeds;
+  const dilutedAfterSell=remainQty>0?remainDilutedTotal/remainQty:0;
+  const finalQty=remainQty+qb;
+  const finalDilutedTotal=remainDilutedTotal+outlay;
+  const dilutedAfterBuy=finalQty>0?finalDilutedTotal/finalQty:0;
+  const weightedAfterSell=remainQty>0?pos.weighted:0;
+  const weightedAfterBuy=finalQty>0?(pos.weighted*remainQty+outlay)/finalQty:0;
+  const paired=Math.min(qs,qb);
+  const sellPer=qs>0?sell.total/qs:0;
+  const buyPer=qb>0?buy.total/qb:0;
+  const pairedNet=paired>0?(ps-pb-sellPer-buyPer)*paired:0;
+  const unpairedSell=Math.max(0,qs-qb);
+  const unpairedBuy=Math.max(0,qb-qs);
+  const unpairedSellPnl=unpairedSell>0?(ps-pos.diluted-sellPer)*unpairedSell:0;
+  const unpairedBuyCost=unpairedBuy>0?(pb+buyPer)*unpairedBuy:0;
+  const breakeven=qs>0?breakevenBuy(ps,qb>0?Math.min(qs,qb):qs,settings):0;
+  const warnings=[];
+  const add=(level,text)=>{ if(!warnings.some(w=>w.text===text)) warnings.push({level,text}); };
+  if(pos.invalid) add('warn','流水存在负持仓或 0 价格/0 数量，请先修正标红行。');
+  if(pos.shares<=0) add('warn','当前无持仓，无法卖出。');
+  if(qs<=0) add('note','请输入卖出股数。');
+  if(ps<=0) add('note','请输入卖出价。');
+  if(qs>pos.shares) add('warn',`卖出股数超过当前持仓 ${fmt0(pos.shares)} 股。`);
+  if(qs>available) add('warn',`可卖不足：计划日可卖 ${fmt0(available)} 股（当日买入部分不可卖）。`);
+  if(qb<=0) add('note','买回股数为 0：只能“只记卖出”，本轮会显示待买回。');
+  else if(pb<=0) add('note','请输入买回价。');
+  if(qb>0&&qb%lot!==0) add('warn',`买回股数需为 ${lot} 股整数倍。`);
+  if(qb>qs) add('note',`买回比卖出多 ${fmt0(qb-qs)} 股，属于加仓，不是平T。`);
+  if(qb>0&&qb<qs) add('note',`买回比卖出少 ${fmt0(qs-qb)} 股，属于净减仓，不是完整平T。`);
+  if(qb>0&&outlay>proceeds+pos.cash+1e-9) add('warn',`买回资金不足：需垫资 ${fmt(outlay-proceeds-pos.cash)} 元。`);
+  if(qb>0&&finalQty<0) add('warn','买回后持仓为负。');
+  if(isWeekend(date)) add('note','所选日期是周末，A股休市；仅用于复盘/推演。');
+  const blockedSell=!!(pos.invalid||pos.shares<=0||qs<=0||ps<=0||qs>pos.shares||qs>available);
+  const blockedRound=!!(blockedSell||qb<=0||pb<=0||qb%lot!==0||finalQty<0||outlay>proceeds+pos.cash+1e-9);
+  return {qs,qb,ps,pb,date,lot,sell,buy,grossSell,grossBuy,proceeds,outlay,netCash,remainQty,
+    remainDilutedTotal,dilutedAfterSell,finalQty,finalDilutedTotal,dilutedAfterBuy,
+    weightedAfterSell,weightedAfterBuy,paired,sellPer,buyPer,pairedNet,unpairedSell,unpairedBuy,
+    unpairedSellPnl,unpairedBuyCost,breakeven,warnings,blockedSell,blockedRound};
+}
+
+function computeBuyFirstPlan(pos,plan,s,available){
+  const settings=s||{};
+  const qb=Math.max(0,int(plan&&plan.qb));
+  const qs=Math.max(0,int(plan&&plan.qs));
+  const pb=num(plan&&plan.pb);
+  const ps=num(plan&&plan.ps);
+  const date=validDate(plan&&plan.date)?plan.date:todayLocal();
+  const lot=Math.max(1,int(settings.lotSize)||100);
+  const buy=feeParts('buy',pb,qb,settings);
+  const sell=feeParts('sell',ps,qs,settings);
+  const grossBuy=pb*qb;
+  const grossSell=ps*qs;
+  const outlay=grossBuy+buy.total;
+  const proceeds=grossSell-sell.total;
+  const netCash=proceeds-outlay;
+  const afterBuyQty=pos.shares+qb;
+  const afterBuyDilutedTotal=pos.dilutedTotal+outlay;
+  const dilutedAfterBuy=afterBuyQty>0?afterBuyDilutedTotal/afterBuyQty:0;
+  const weightedAfterBuy=afterBuyQty>0?(pos.weighted*pos.shares+outlay)/afterBuyQty:0;
+  const finalQty=afterBuyQty-qs;
+  const finalDilutedTotal=afterBuyDilutedTotal-proceeds;
+  const dilutedAfterSell=finalQty>0?finalDilutedTotal/finalQty:0;
+  const weightedAfterSell=finalQty>0?weightedAfterBuy:0;
+  const paired=Math.min(qb,qs);
+  const buyPer=qb>0?buy.total/qb:0;
+  const sellPer=qs>0?sell.total/qs:0;
+  const pairedNet=paired>0?(ps-pb-buyPer-sellPer)*paired:0;
+  const unpairedBuy=Math.max(0,qb-qs);
+  const unpairedSell=Math.max(0,qs-qb);
+  const breakeven=qs>0?breakevenSell(pb,qs,settings):0;
+  const warnings=[];
+  const add=(level,text)=>{ if(!warnings.some(w=>w.text===text)) warnings.push({level,text}); };
+  const buyOnlyWarnings=[];
+  const addBuy=(level,text)=>{ if(!buyOnlyWarnings.some(w=>w.text===text)) buyOnlyWarnings.push({level,text}); };
+  if(pos.invalid){ add('warn','流水存在负持仓或 0 价格/0 数量，请先修正标红行。'); addBuy('warn','流水存在负持仓或 0 价格/0 数量，请先修正标红行。'); }
+  if(pos.shares<=0) add('warn','当前无持仓：先买后卖需要足够的昨仓底仓才能卖出。');
+  if(qb<=0){ add('note','请输入买入股数。'); addBuy('note','请输入买入股数。'); }
+  if(pb<=0){ add('note','请输入买入价。'); addBuy('note','请输入买入价。'); }
+  if(qs<=0) add('note','请输入卖出股数。');
+  if(ps<=0) add('note','请输入卖出价。');
+  if(qb>0&&qb%lot!==0){ add('warn',`买入股数需为 ${lot} 股整数倍。`); addBuy('warn',`买入股数需为 ${lot} 股整数倍。`); }
+  if(qs>available) add('warn',`可卖不足：计划日可卖 ${fmt0(available)} 股（当日买入部分不可卖）。`);
+  if(qs>pos.shares) add('warn',`卖出股数超过当前持仓 ${fmt0(pos.shares)} 股。`);
+  if(qb>0&&outlay>pos.cash+1e-9){ add('warn',`先买需要现金：买入需 ${fmt(outlay)} 元，当前现金 ${fmt(pos.cash)} 元。`); addBuy('warn',`先买需要现金：买入需 ${fmt(outlay)} 元，当前现金 ${fmt(pos.cash)} 元。`); }
+  if(qb>qs) add('note',`买入比卖出多 ${fmt0(qb-qs)} 股，属于加仓，不是平T。`);
+  if(qs>qb) add('note',`卖出比买入多 ${fmt0(qs-qb)} 股，属于净减仓，不是完整平T。`);
+  if(finalQty<0) add('warn','卖出后持仓为负。');
+  if(isWeekend(date)){ add('note','所选日期是周末，A股休市；仅用于复盘/推演。'); addBuy('note','所选日期是周末，A股休市；仅用于复盘/推演。'); }
+  const blockedBuyOnly=!!(pos.invalid||qb<=0||pb<=0||qb%lot!==0||outlay>pos.cash+1e-9);
+  const blockedSell=!!(pos.invalid||pos.shares<=0||qs<=0||ps<=0||qs>available||qs>pos.shares);
+  const blockedRound=!!(blockedBuyOnly||blockedSell||finalQty<0);
+  return {qb,qs,pb,ps,date,lot,buy,sell,grossBuy,grossSell,outlay,proceeds,netCash,
+    afterBuyQty,afterBuyDilutedTotal,dilutedAfterBuy,weightedAfterBuy,finalQty,finalDilutedTotal,
+    dilutedAfterSell,weightedAfterSell,paired,buyPer,sellPer,pairedNet,unpairedBuy,unpairedSell,
+    breakeven,warnings,buyOnlyWarnings,blockedBuyOnly,blockedSell,blockedRound};
+}
+
+function computeBuyPlan(pos,round,plan,s){
+  const settings=s||{};
+  const qb=Math.max(0,int(plan&&plan.qb));
+  const pb=num(plan&&plan.pb);
+  const date=validDate(plan&&plan.date)?plan.date:todayLocal();
+  const lot=Math.max(1,int(settings.lotSize)||100);
+  const remaining=Math.max(0,int(round&&round.remaining));
+  const buy=feeParts('buy',pb,qb,settings);
+  const outlay=pb*qb+buy.total;
+  const finalQty=pos.shares+qb;
+  const finalDilutedTotal=pos.dilutedTotal+outlay;
+  const dilutedAfterBuy=finalQty>0?finalDilutedTotal/finalQty:0;
+  const weightedAfterBuy=finalQty>0?(pos.weighted*pos.shares+outlay)/finalQty:0;
+  const sellFeePer=round&&round.sellQty>0?round.sellFee/round.sellQty:0;
+  const buyFeePer=qb>0?buy.total/qb:0;
+  const paired=Math.min(qb,remaining);
+  const pairedNet=paired>0?(round.sellAvg-pb-sellFeePer-buyFeePer)*paired:0;
+  const remainingAfter=Math.max(0,remaining-qb);
+  const breakeven=remaining>0?breakevenFromSell(round.sellAvg-sellFeePer,Math.max(1,qb||remaining),settings):0;
+  const warnings=[];
+  const add=(level,text)=>{ if(!warnings.some(w=>w.text===text)) warnings.push({level,text}); };
+  if(pos.invalid) add('warn','流水存在负持仓或 0 价格/0 数量，请先修正标红行。');
+  if(qb<=0) add('note','请输入买回股数。');
+  if(pb<=0) add('note','请输入买回价。');
+  if(qb>0&&qb%lot!==0) add('warn',`买回股数需为 ${lot} 股整数倍。`);
+  if(qb>remaining) add('warn',`买回数量超过待买回 ${fmt0(remaining)} 股。`);
+  if(qb>0&&outlay>pos.cash+1e-9) add('warn',`现金不足：买回需 ${fmt(outlay)} 元，当前现金 ${fmt(pos.cash)} 元。`);
+  if(round&&date<round.date) add('warn','买回日期早于卖出日期，请检查日期。');
+  if(isWeekend(date)) add('note','所选日期是周末，A股休市；仅用于复盘/推演。');
+  const blockedBuy=!!(pos.invalid||qb<=0||pb<=0||qb%lot!==0||qb>remaining||outlay>pos.cash+1e-9||(round&&date<round.date));
+  return {qb,pb,date,lot,remaining,buy,outlay,finalQty,finalDilutedTotal,dilutedAfterBuy,weightedAfterBuy,
+    sellFeePer,buyFeePer,paired,pairedNet,remainingAfter,breakeven,warnings,blockedBuy};
+}
+
+function computeSellPlan(pos,round,plan,s,available){
+  const settings=s||{};
+  const qs=Math.max(0,int(plan&&plan.qs));
+  const ps=num(plan&&plan.ps);
+  const date=validDate(plan&&plan.date)?plan.date:todayLocal();
+  const remaining=Math.max(0,int(round&&round.remaining));
+  const sell=feeParts('sell',ps,qs,settings);
+  const proceeds=ps*qs-sell.total;
+  const finalQty=pos.shares-qs;
+  const finalDilutedTotal=pos.dilutedTotal-proceeds;
+  const dilutedAfterSell=finalQty>0?finalDilutedTotal/finalQty:0;
+  const weightedAfterSell=finalQty>0?pos.weighted:0;
+  const paired=Math.min(qs,remaining);
+  const buyFeePer=round&&round.buyQty>0?round.buyFee/round.buyQty:0;
+  const sellFeePer=qs>0?sell.total/qs:0;
+  const pairedNet=paired>0?(ps-round.buyAvg-buyFeePer-sellFeePer)*paired:0;
+  const remainingAfter=Math.max(0,remaining-qs);
+  const breakeven=remaining>0?breakevenSell(round.buyAvg,Math.max(1,qs||remaining),settings):0;
+  const warnings=[];
+  const add=(level,text)=>{ if(!warnings.some(w=>w.text===text)) warnings.push({level,text}); };
+  if(pos.invalid) add('warn','流水存在负持仓或 0 价格/0 数量，请先修正标红行。');
+  if(qs<=0) add('note','请输入卖出股数。');
+  if(ps<=0) add('note','请输入卖出价。');
+  if(qs>remaining) add('warn',`卖出数量超过待卖出 ${fmt0(remaining)} 股。`);
+  if(qs>pos.shares) add('warn',`卖出股数超过当前持仓 ${fmt0(pos.shares)} 股。`);
+  if(qs>available) add('warn',`可卖不足：计划日可卖 ${fmt0(available)} 股（当日买入部分不可卖）。`);
+  if(round&&date<round.date) add('warn','卖出日期早于买入日期，请检查日期。');
+  if(isWeekend(date)) add('note','所选日期是周末，A股休市；仅用于复盘/推演。');
+  const blockedSellBack=!!(pos.invalid||qs<=0||ps<=0||qs>remaining||qs>pos.shares||qs>available||(round&&date<round.date));
+  return {qs,ps,date,remaining,sell,proceeds,finalQty,finalDilutedTotal,dilutedAfterSell,weightedAfterSell,
+    paired,buyFeePer,sellFeePer,pairedNet,remainingAfter,breakeven,warnings,blockedSellBack};
+}
+
+function groupRounds(rows){
+  const map=new Map();
+  (rows||[]).forEach(r=>{
+    if(!r.roundId) return;
+    if(!map.has(r.roundId)) map.set(r.roundId,[]);
+    map.get(r.roundId).push(r);
+  });
+  const out=[];
+  for(const [id,list] of map){
+    const sells=list.filter(r=>r.side==='sell');
+    const buys=list.filter(r=>r.side==='buy');
+    const sellQty=sells.reduce((a,r)=>a+r.qty,0);
+    const buyQty=buys.reduce((a,r)=>a+r.qty,0);
+    const sellAmt=sells.reduce((a,r)=>a+r.amount,0);
+    const buyAmt=buys.reduce((a,r)=>a+r.amount,0);
+    const sellFee=sells.reduce((a,r)=>a+r.fee,0);
+    const buyFee=buys.reduce((a,r)=>a+r.fee,0);
+    const fees=sellFee+buyFee;
+    const sellAvg=sellQty>0?sellAmt/sellQty:0;
+    const buyAvg=buyQty>0?buyAmt/buyQty:0;
+    const paired=Math.min(sellQty,buyQty);
+    const pairedNet=paired>0
+      ?(sellAvg-buyAvg)*paired-sellFee*(paired/(sellQty||1))-buyFee*(paired/(buyQty||1))
+      :0;
+    const netCash=sellAmt-buyAmt-fees;
+    const first=list[0];
+    const last=list[list.length-1];
+    const direction=first&&first.dir?first.dir:(first&&first.side==='sell'?'sell-first':'buy-first');
+    const status=direction==='sell-first'
+      ?(buyQty<=0?'open':(buyQty<sellQty?'partial':'closed'))
+      :(sellQty<=0?'open':(sellQty<buyQty?'partial':'closed'));
+    const remaining=direction==='sell-first'
+      ?Math.max(0,sellQty-buyQty)
+      :Math.max(0,buyQty-sellQty);
+    const openSide=direction==='sell-first'?'buy':'sell';
+    const startDate=first?first.date:'';
+    const endDate=last?last.date:'';
+    const costImpact=(first&&last&&first.dilutedBefore>0&&last.shares>0)?(last.diluted-first.dilutedBefore):null;
+    const days=(sellQty>0&&buyQty>0)?tradingDaysBetween(startDate,endDate):null;
+    out.push({id,list,sellQty,buyQty,sellAmt,buyAmt,sellFee,buyFee,fees,sellAvg,buyAvg,paired,pairedNet,
+      netCash,status,direction,openSide,remaining,date:startDate,days,costImpact});
+  }
+  out.sort((a,b)=>(a.date||'').localeCompare(b.date||'')||a.id.localeCompare(b.id,undefined,{numeric:true}));
+  return out;
+}
+
+/* ===================== 渲染：总控 ===================== */
+function renderAll(){
+  sortTrades();
+  const R=computePosition(state.init,state.trades,state.settings);
+  const rounds=groupRounds(R.rows);
+  if(state.activeRoundId){
+    const ar=rounds.find(r=>r.id===state.activeRoundId);
+    if(!ar||ar.status==='closed') state.activeRoundId=null;
+  }
+  renderGlobalWarn(R);
+  renderKPIs(R,rounds);
+  renderPlan(R,rounds);
+  renderChart(R);
+  renderLedger(R);
+  renderT1(R);
+  renderOpenRounds(rounds,R);
+  renderRounds(rounds,R);
+  renderFeeCompare();
+  saveNow();
+}
+function renderPlanOnly(){
+  sortTrades();
+  const R=computePosition(state.init,state.trades,state.settings);
+  const rounds=groupRounds(R.rows);
+  if(state.activeRoundId){
+    const ar=rounds.find(r=>r.id===state.activeRoundId);
+    if(!ar||ar.status==='closed') state.activeRoundId=null;
+  }
+  renderPlan(R,rounds);
+  save();
+}
+
+/* ===================== 渲染：全局提示 / KPI ===================== */
+function renderGlobalWarn(R){
+  const msgs=[];
+  if(R.invalid) msgs.push('流水中有无效行（负持仓、0 价格或 0 数量），已在表格中标红。');
+  if(R.shares<0) msgs.push('当前持仓为负：卖出数量超过持仓，成本与盈亏不成立。');
+  if(state.init.shares>0&&state.init.cost<=0) msgs.push('初始成本价为空，无法计算成本。');
+  if(state.settings.lastPrice<=0) msgs.push('期末市价为空，暂按最后成交价/初始成本估值。');
+  const el=$('globalWarn');
+  if(msgs.length){ el.innerHTML='⚠ '+msgs.map(esc).join('　'); el.classList.add('show'); }
+  else{ el.innerHTML=''; el.classList.remove('show'); }
+}
+function kpiHtml(k,v,n,cls){
+  return `<div class="kpi"><div class="k">${k}</div><div class="v ${cls||''}">${v}</div><div class="n">${n||'&nbsp;'}</div></div>`;
+}
+function renderKPIs(R,rounds){
+  const avail=Math.min(Math.max(0,R.shares),availabilityAt(state.init,state.trades,todayLocal()));
+  const frozen=Math.max(0,R.shares-avail);
+  const closed=rounds.filter(r=>r.status==='closed'&&r.paired>0);
+  const tNet=closed.reduce((a,r)=>a+r.pairedNet,0);
+  const wins=closed.filter(r=>r.pairedNet>0).length;
+  const winRate=closed.length?wins/closed.length*100:0;
+  const amt=R.totalBuy+R.totalSell;
+  const feePct=amt>0?R.totalFee/amt*100:0;
+  const pnlPctTxt=`${R.pnlPct>=0?'+':''}${R.pnlPct.toFixed(2)}%`;
+  $('kpis').innerHTML=[
+    kpiHtml('当前持仓',fmt0(R.shares)+' 股',`市值 ${fmt(R.marketValue)}`,R.shares<0?'down':''),
+    kpiHtml('加权成本',R.shares>0?p4(R.weighted):'—','移动加权 · 卖出不变',''),
+    kpiHtml('摊薄成本',R.shares>0?p4(R.diluted):'—','保本价 · 卖出回款冲减',''),
+    kpiHtml('浮动盈亏',R.shares>0?signed(R.floatPnl):'—',R.shares>0?`按加权；按摊薄 ${signed(R.floatPnlDiluted)}`:'当前无持仓',R.shares>0?pnlCls(R.floatPnl):''),
+    kpiHtml('期末总资产',fmt(R.endAsset),`现金 ${fmt(R.cash)} + 市值 ${fmt(R.marketValue)}`,''),
+    kpiHtml('策略盈亏',signed(R.pnl),pnlPctTxt,pnlCls(R.pnl)),
+    kpiHtml('买入持有盈亏',signed(R.benchPnl),'期初持仓不动到今天',pnlCls(R.benchPnl)),
+    kpiHtml('超额收益',signed(R.alpha),'策略 − 买入持有',pnlCls(R.alpha)),
+    kpiHtml('总费用',fmt(R.totalFee),`占成交额 ${feePct.toFixed(2)}%`,''),
+    kpiHtml('峰值垫资',fmt(R.peakNeed),'现金最低点',''),
+    kpiHtml('可卖股数',fmt0(avail),`今日买入冻结 ${fmt0(frozen)}`,''),
+    kpiHtml('T轮次净收益',closed.length?signed(tNet):'—',closed.length?`${closed.length} 轮已平 · 胜率 ${winRate.toFixed(0)}%`:'暂无已平轮次',closed.length?pnlCls(tNet):'')
+  ].join('');
+}
+
+/* ===================== 渲染：计划面板 ===================== */
+function setActionButtons(ids){
+  ['btnRecordRound','btnRecordSell','btnRecordBuy','btnRecordSellBack','btnCancelBuy'].forEach(id=>{
+    const el=$(id); if(el) el.style.display=ids.indexOf(id)>=0?'':'none';
+  });
+}
+function renderPlan(R,rounds){
+  const plan=state.plan;
+  const avail=Math.min(Math.max(0,R.shares),availabilityAt(state.init,state.trades,plan.date));
+  const ar=state.activeRoundId?rounds.find(r=>r.id===state.activeRoundId):null;
+  renderPosStrip(R,avail,plan.date,ar);
+  renderFeeSummary();
+  renderDateHint(plan.date);
+  if(ar){
+    $('activeBanner').classList.add('show');
+    if(ar.direction==='buy-first'){
+      $('activeBanner').innerHTML=`正在补记 <b>${esc(ar.id)}</b> 的卖出：买入 <b>${fmt0(ar.buyQty)}</b> @ <b>${p4(ar.buyAvg)}</b> · 已卖出 <b>${fmt0(ar.sellQty)}</b> · 剩余 <b>${fmt0(ar.remaining)}</b> 股`;
+      renderSellBackPlan(ar,R,plan,avail);
+    }else{
+      $('activeBanner').innerHTML=`正在补记 <b>${esc(ar.id)}</b> 的买回：卖出 <b>${fmt0(ar.sellQty)}</b> @ <b>${p4(ar.sellAvg)}</b> · 已买回 <b>${fmt0(ar.buyQty)}</b> · 剩余 <b>${fmt0(ar.remaining)}</b> 股`;
+      renderBuyBackPlan(ar,R,plan);
+    }
+  }else{
+    $('activeBanner').classList.remove('show');
+    $('activeBanner').innerHTML='';
+    if(plan.qs<=0) renderBuyOnlyPlan(R,plan);
+    else renderNewPlan(R,plan,avail);
+  }
+}
+function renderPosStrip(R,avail,date,ar){
+  if(R.shares<0){
+    $('posStrip').innerHTML=`当前持仓 <b class="down">${fmt0(R.shares)}</b> 股（异常）· 请检查卖出数量。`;
+    return;
+  }
+  if(R.shares<=0){
+    $('posStrip').innerHTML=`当前无持仓。先在下方参数区填初始持仓，或手动添加一笔买入。`;
+    return;
+  }
+  const arTxt=ar?` · ${ar.direction==='buy-first'?'待卖出':'待买回'} <b>${esc(ar.id)}</b>`:'';
+  $('posStrip').innerHTML=`当前 <b>${fmt0(R.shares)}</b> 股 · 摊薄 <b>${p4(R.diluted)}</b> · 加权 <b>${p4(R.weighted)}</b> · 现金 <b>${fmt(R.cash)}</b> · 计划日可卖 <b>${fmt0(avail)}</b> 股`+arTxt+(isWeekend(date)?' · <span class="up">周末</span>':'');
+}
+function renderFeeSummary(){
+  const s=state.settings;
+  $('feeSummary').innerHTML=s.feeMode==='fixed'
+    ?`固定 ${fmt(s.fixedPerShare,3)} 元/股 · 双边`
+    :`万${fmt(s.commission,2)} / 最低${fmt(s.minCommission,2)}元<br>印花税${fmt(s.stamp,2)}‰ · 过户费${fmt(s.transfer,2)}‱`;
+}
+function renderDateHint(date){
+  const parts=[];
+  if(date<todayLocal()) parts.push('补录历史日期：预览按当前持仓估算，记录后会按日期重排并重算。');
+  else if(date>todayLocal()) parts.push('计划日期在未来：记录后会按已成交处理，仅用于推演。');
+  if(!parts.length) parts.push('按计划日的可卖数量校验；当日买入的股份不可卖。');
+  $('dateHint').innerHTML=parts.join(' ');
+}
+function renderNewPlan(R,plan,avail){
+  const P=computePlan(R,plan,state.settings,avail);
+  $('sellTitle').textContent='卖出（沽出）';
+  $('buyTitle').textContent='买回（补回）';
+  $('syncText').textContent='买回数量与卖出同步（数量不等时视为加减仓）';
+  $('ps').disabled=false; $('qs').disabled=false; $('pb').disabled=false; $('qb').disabled=false;
+  $('syncQty').disabled=false;
+  const syncLabel=$('syncQty').closest('label'); if(syncLabel) syncLabel.style.display='flex';
+  setActionButtons(['btnRecordRound','btnRecordSell']);
+  $('btnRecordSell').textContent='只记卖出';
+  renderStages3(P,R);
+  renderMetricsNew(P,R);
+  renderWarnings(P.warnings);
+  renderButtonsNew(P);
+  renderCalcNew(P,R);
+  $('sellHint').innerHTML=avail>0
+    ?`计划日可卖 <b>${fmt0(avail)}</b> 股`+(P.qs>avail?` · <span class="up">超出 ${fmt0(P.qs-avail)} 股</span>`:'')
+    :`<span class="up">计划日无可卖股份（当日买入部分不可卖）</span>`;
+  $('buyHint').innerHTML=P.qb>0
+    ?`买回费用 <b>${fmt(P.buy.total)}</b> 元`+(P.qb%P.lot!==0?` · <span class="up">需为 ${P.lot} 股整数倍</span>`:'')
+    :`买回填 0 可只记卖出，本轮会进入“待买回”。`;
+}
+function renderBuyOnlyPlan(R,plan){
+  const P=computeBuyFirstPlan(R,Object.assign({},plan,{qs:0,ps:0}),state.settings,0);
+  const be=breakevenSell(P.pb,P.qb,state.settings);
+  $('sellTitle').textContent='卖出（沽出）';
+  $('buyTitle').textContent='买入（只记买入）';
+  $('syncText').textContent='卖出为 0：只记买入，不需要同步';
+  $('ps').disabled=false; $('qs').disabled=false; $('pb').disabled=false; $('qb').disabled=false;
+  $('syncQty').disabled=true;
+  const syncLabel=$('syncQty').closest('label'); if(syncLabel) syncLabel.style.display='flex';
+  setActionButtons(['btnRecordRound','btnRecordSell']);
+  $('btnRecordSell').textContent='只记买入';
+  $('btnRecordRound').disabled=true;
+  $('btnRecordRound').title='卖出股数为 0：请用只记买入';
+  $('btnRecordSell').disabled=!!P.blockedBuyOnly;
+  const bw=(P.buyOnlyWarnings||[]).find(w=>w.level==='warn');
+  $('btnRecordSell').title=P.blockedBuyOnly?(bw?bw.text:'请检查买入参数'):'';
+  renderBuyOnlyStages(P,R);
+  renderMetricsBuyOnly(P,R,be);
+  renderWarnings(P.buyOnlyWarnings);
+  renderCalcBuyOnly(P,R,be);
+  $('sellHint').innerHTML=`卖出股数为 <b>0</b>：本轮只记买入；买入后在右侧“未平轮次”补记卖出。`;
+  $('buyHint').innerHTML=P.qb>0
+    ?`买入费用 <b>${fmt(P.buy.total)}</b> 元`+(P.qb%P.lot!==0?` · <span class="up">需为 ${P.lot} 股整数倍</span>`:'')
+    :`先填买入价/股数，按钮会变成“只记买入”。`;
+}
+function renderBuyBackPlan(ar,R,plan){
+  const P=computeBuyPlan(R,ar,plan,state.settings);
+  $('sellTitle').textContent='卖出（已记录）';
+  $('buyTitle').textContent='买回（补记）';
+  $('ps').disabled=true; $('qs').disabled=true; $('pb').disabled=false; $('qb').disabled=false;
+  $('syncQty').disabled=true;
+  const syncLabel=$('syncQty').closest('label'); if(syncLabel) syncLabel.style.display='none';
+  $('ps').value=ar.sellAvg?String(Number(ar.sellAvg.toFixed(3))):'';
+  $('qs').value=ar.sellQty||'';
+  setActionButtons(['btnRecordBuy','btnCancelBuy']);
+  renderStages2(ar,P,R);
+  renderMetricsBuy(P,ar,R);
+  renderWarnings(P.warnings);
+  renderButtonsBuy(P);
+  renderCalcBuy(P,ar,R);
+  $('sellHint').innerHTML=`已记录卖出 <b>${fmt0(ar.sellQty)}</b> 股 @ <b>${p4(ar.sellAvg)}</b> · 已买回 <b>${fmt0(ar.buyQty)}</b> · 剩余 <b>${fmt0(ar.remaining)}</b> 股`;
+  $('buyHint').innerHTML=`本次买回 <b>${fmt0(P.qb)}</b> 股 · 费用 <b>${fmt(P.buy.total)}</b> 元`+(P.qb>ar.remaining?` · <span class="up">超过剩余 ${fmt0(ar.remaining)} 股</span>`:'');
+}
+function renderSellBackPlan(ar,R,plan,avail){
+  const P=computeSellPlan(R,ar,plan,state.settings,avail);
+  $('sellTitle').textContent='卖出（补记）';
+  $('buyTitle').textContent='买入（已记录）';
+  $('ps').disabled=false; $('qs').disabled=false; $('pb').disabled=true; $('qb').disabled=true;
+  $('syncQty').disabled=true;
+  const syncLabel=$('syncQty').closest('label'); if(syncLabel) syncLabel.style.display='none';
+  $('pb').value=ar.buyAvg?String(Number(ar.buyAvg.toFixed(3))):'';
+  $('qb').value=ar.buyQty||'';
+  setActionButtons(['btnRecordSellBack','btnCancelBuy']);
+  renderSellBackStages(ar,P,R);
+  renderMetricsSellBack(P,ar,R);
+  renderWarnings(P.warnings);
+  renderButtonsSellBack(P);
+  renderCalcSellBack(P,ar,R);
+  $('sellHint').innerHTML=`本次卖出 <b>${fmt0(P.qs)}</b> 股 · 费用 <b>${fmt(P.sell.total)}</b> 元`+(P.qs>ar.remaining?` · <span class="up">超过剩余 ${fmt0(ar.remaining)} 股</span>`:'');
+  $('buyHint').innerHTML=`已记录买入 <b>${fmt0(ar.buyQty)}</b> 股 @ <b>${p4(ar.buyAvg)}</b> · 已卖出 <b>${fmt0(ar.sellQty)}</b> · 剩余 <b>${fmt0(ar.remaining)}</b> 股`;
+}
+function stageHtml(label,big,weighted,meta,delta,final,bigCls){
+  return `<div class="stage ${final?'final':''}">
+    <div class="lab">${label}</div>
+    <div class="cost ${bigCls||''}">${big}</div>
+    <div class="weighted">${weighted||'&nbsp;'}</div>
+    <div class="meta">${meta||'&nbsp;'}</div>
+    ${delta?`<div class="delta">${delta}</div>`:''}
+  </div>`;
+}
+function deltaHtml(newCost,base){
+  if(!Number.isFinite(newCost)||!Number.isFinite(base)||base<=0) return '';
+  const d=newCost-base;
+  if(Math.abs(d)<5e-9) return '<span class="flat">持平</span>';
+  return `<span class="${costCls(d)}">${d<0?'↓ 摊低':'↑ 抬高'} ${p4(Math.abs(d))}</span>`;
+}
+function costClass(newCost,base){
+  if(!Number.isFinite(newCost)||!Number.isFinite(base)||base<=0) return '';
+  const d=newCost-base;
+  if(Math.abs(d)<5e-9) return '';
+  return d<0?'up':'down';
+}
+function renderStages3(P,R){
+  const s1=stageHtml('① 当前',R.shares>0?p4(R.diluted):'—',
+    R.shares>0?`加权 ${p4(R.weighted)}`:'尚无持仓',
+    R.shares>0?`${fmt0(R.shares)} 股 · 摊薄占用 ${fmt(R.dilutedTotal)}`:'先在参数区填期初','',false);
+  let s2,s3;
+  if(P.qs<=0){
+    s2=stageHtml('② 减仓后','—','等待输入卖出','—','',false);
+    s3=stageHtml('③ 买回后','—','等待输入买回','—','',true);
+  }else if(P.remainQty<=0){
+    s2=stageHtml('② 减仓后','已清仓','0 股',`现金 ${fmt(R.cash+P.proceeds)}`,'清仓',false);
+    const big3=P.qb>0&&P.finalQty>0?p4(P.dilutedAfterBuy):'已清仓';
+    s3=stageHtml('③ 买回后',big3,
+      P.qb>0?`加权 ${p4(P.weightedAfterBuy)}`:'无持仓',
+      P.qb>0?`${fmt0(P.finalQty)} 股 · 现金 ${fmt(R.cash+P.netCash)}`:'', '',true,
+      P.qb>0?costClass(P.dilutedAfterBuy,R.diluted):'');
+  }else{
+    s2=stageHtml('② 减仓后',p4(P.dilutedAfterSell),`加权 ${p4(P.weightedAfterSell)}`,
+      `${fmt0(P.remainQty)} 股 · 现金 ${fmt(R.cash+P.proceeds)}`,deltaHtml(P.dilutedAfterSell,R.diluted),false,
+      costClass(P.dilutedAfterSell,R.diluted));
+    if(P.qb<=0){
+      s3=stageHtml('③ 买回后','待买回',`卖出后 ${fmt0(P.remainQty)} 股`,`现金 ${fmt(R.cash+P.proceeds)}`,'未完成',true);
+    }else{
+      s3=stageHtml('③ 买回后',p4(P.dilutedAfterBuy),`加权 ${p4(P.weightedAfterBuy)}`,
+        `${fmt0(P.finalQty)} 股 · 现金 ${fmt(R.cash+P.netCash)}`,deltaHtml(P.dilutedAfterBuy,R.diluted),true,
+        costClass(P.dilutedAfterBuy,R.diluted));
+    }
+  }
+  $('planStages').className='stages';
+  $('planStages').innerHTML=s1+'<div class="arrow">→</div>'+s2+'<div class="arrow">→</div>'+s3;
+}
+function renderBuyOnlyStages(P,R){
+  const s1=stageHtml('① 当前',R.shares>0?p4(R.diluted):'—',
+    R.shares>0?`加权 ${p4(R.weighted)}`:'尚无持仓',
+    R.shares>0?`${fmt0(R.shares)} 股 · 摊薄占用 ${fmt(R.dilutedTotal)}`:'先在参数区填期初','',false);
+  let s2;
+  if(P.qb<=0){
+    s2=stageHtml('② 买入后','—','等待输入买入',R.shares>0?`当前 ${fmt0(R.shares)} 股`:'','',true);
+  }else{
+    s2=stageHtml('② 买入后',P.afterBuyQty>0?p4(P.dilutedAfterBuy):'—',
+      P.afterBuyQty>0?`加权 ${p4(P.weightedAfterBuy)}`:'',
+      P.afterBuyQty>0?`${fmt0(P.afterBuyQty)} 股 · 现金 ${fmt(R.cash-P.outlay)}`:'',
+      deltaHtml(P.dilutedAfterBuy,R.diluted),true,costClass(P.dilutedAfterBuy,R.diluted));
+  }
+  $('planStages').className='stages two';
+  $('planStages').innerHTML=s1+'<div class="arrow">→</div>'+s2;
+}
+function renderStages2(ar,P,R){
+  const s1=stageHtml('① 当前（卖出后）',R.shares>0?p4(R.diluted):'—',
+    R.shares>0?`加权 ${p4(R.weighted)}`:'无持仓',
+    R.shares>0?`${fmt0(R.shares)} 股 · 现金 ${fmt(R.cash)}`:'','',false);
+  const s2=stageHtml('② 买回后',P.finalQty>0?p4(P.dilutedAfterBuy):'—',
+    P.finalQty>0?`加权 ${p4(P.weightedAfterBuy)}`:'',
+    P.finalQty>0?`${fmt0(P.finalQty)} 股 · 现金 ${fmt(R.cash-P.outlay)}`:'',
+    deltaHtml(P.dilutedAfterBuy,R.diluted),true,costClass(P.dilutedAfterBuy,R.diluted));
+  $('planStages').className='stages two';
+  $('planStages').innerHTML=s1+'<div class="arrow">→</div>'+s2;
+}
+function renderSellBackStages(ar,P,R){
+  const s1=stageHtml('① 当前（买入后）',R.shares>0?p4(R.diluted):'—',
+    R.shares>0?`加权 ${p4(R.weighted)}`:'无持仓',
+    R.shares>0?`${fmt0(R.shares)} 股 · 现金 ${fmt(R.cash)}`:'','',false);
+  const s2=stageHtml('② 卖出后',P.finalQty>0?p4(P.dilutedAfterSell):'已清仓',
+    P.finalQty>0?`加权 ${p4(P.weightedAfterSell)}`:'',
+    P.finalQty>0?`${fmt0(P.finalQty)} 股 · 现金 ${fmt(R.cash+P.proceeds)}`:'',
+    deltaHtml(P.dilutedAfterSell,R.diluted),true,costClass(P.dilutedAfterSell,R.diluted));
+  $('planStages').className='stages two';
+  $('planStages').innerHTML=s1+'<div class="arrow">→</div>'+s2;
+}
+function metricHtml(k,v,cls,sub){
+  return `<div class="metric"><em>${k}</em><strong class="${cls||''}">${v}</strong>${sub?`<span class="sub">${sub}</span>`:''}</div>`;
+}
+function renderMetricsNew(P,R){
+  const netVal=P.qb>0?signed(P.pairedNet):'待买回';
+  const netSub=P.qb>0?`${fmt0(P.paired)} 股配对 · 含双边费用`:`卖出已回笼 ${fmt(P.proceeds)}`;
+  const posDelta=P.qb-P.qs;
+  $('planMetrics').innerHTML=[
+    metricHtml('卖出净回笼',fmt(P.proceeds),'',`费用 ${fmt(P.sell.total)}`),
+    metricHtml('买回支出',fmt(P.outlay),'',`费用 ${fmt(P.buy.total)}`),
+    metricHtml('本轮净收益',netVal,P.qb>0?pnlCls(P.pairedNet):'muted',netSub),
+    metricHtml('净现金流',signed(P.netCash),'',`正=回笼，负=净投入`),
+    metricHtml('仓位变化',(posDelta>0?'+':'')+fmt0(posDelta)+' 股','',`期末 ${fmt0(P.finalQty)} 股`),
+    metricHtml('保本买回价',P.breakeven>0?p4(P.breakeven):'—','',`按 ${fmt0(P.paired||P.qs)} 股配对`)
+  ].join('');
+}
+function renderMetricsBuyOnly(P,R,be){
+  $('planMetrics').innerHTML=[
+    metricHtml('买入支出',fmt(P.outlay),'',`费用 ${fmt(P.buy.total)}`),
+    metricHtml('买入后摊薄成本',P.afterBuyQty>0?p4(P.dilutedAfterBuy):'—','',`当前 ${p4(R.diluted)}`),
+    metricHtml('买入后加权成本',P.afterBuyQty>0?p4(P.weightedAfterBuy):'—','',`当前 ${p4(R.weighted)}`),
+    metricHtml('仓位变化',(P.qb>0?'+':'')+fmt0(P.qb)+' 股','',`期末 ${fmt0(P.afterBuyQty)} 股`),
+    metricHtml('保本卖出价',be>0?p4(be):'—','',`按 ${fmt0(P.qb)} 股`),
+    metricHtml('待办',P.qb>0?'待卖出':'—',P.qb>0?'muted':'',P.qb>0?'买入后在未平轮次补记卖出':'')
+  ].join('');
+}
+function renderMetricsBuy(P,ar,R){
+  $('planMetrics').innerHTML=[
+    metricHtml('买回支出',fmt(P.outlay),'',`费用 ${fmt(P.buy.total)}`),
+    metricHtml('本次配对净收益',P.paired>0?signed(P.pairedNet):'—',pnlCls(P.pairedNet),`${fmt0(P.paired)} 股 · 含卖出费`),
+    metricHtml('买回后摊薄成本',P.finalQty>0?p4(P.dilutedAfterBuy):'—','',`当前 ${p4(R.diluted)}`),
+    metricHtml('买回后加权成本',P.finalQty>0?p4(P.weightedAfterBuy):'—','',`当前 ${p4(R.weighted)}`),
+    metricHtml('保本买回价',P.breakeven>0?p4(P.breakeven):'—','',`按本次 ${fmt0(P.qb)} 股`),
+    metricHtml('剩余待买回',fmt0(P.remainingAfter)+' 股','',`买回后 ${fmt0(P.finalQty)} 股`)
+  ].join('');
+}
+function renderMetricsSellBack(P,ar,R){
+  $('planMetrics').innerHTML=[
+    metricHtml('卖出净回笼',fmt(P.proceeds),'',`费用 ${fmt(P.sell.total)}`),
+    metricHtml('本次配对净收益',P.paired>0?signed(P.pairedNet):'—',pnlCls(P.pairedNet),`${fmt0(P.paired)} 股 · 含买入费`),
+    metricHtml('卖出后摊薄成本',P.finalQty>0?p4(P.dilutedAfterSell):'—','',`当前 ${p4(R.diluted)}`),
+    metricHtml('卖出后加权成本',P.finalQty>0?p4(P.weightedAfterSell):'—','',`当前 ${p4(R.weighted)}`),
+    metricHtml('保本卖出价',P.breakeven>0?p4(P.breakeven):'—','',`按本次 ${fmt0(P.qs)} 股`),
+    metricHtml('剩余待卖出',fmt0(P.remainingAfter)+' 股','',`卖出后 ${fmt0(P.finalQty)} 股`)
+  ].join('');
+}
+function renderWarnings(warnings){
+  const box=$('planWarn');
+  if(!warnings||!warnings.length){ box.classList.remove('show'); box.innerHTML=''; return; }
+  box.innerHTML=warnings.map(w=>`<div class="${w.level==='warn'?'warn-item':'note-item'}">${w.level==='warn'?'⚠ ':'· '}${esc(w.text)}</div>`).join('');
+  box.classList.add('show');
+}
+function renderButtonsNew(P){
+  $('btnRecordRound').disabled=!!P.blockedRound;
+  $('btnRecordSell').disabled=!!P.blockedSell;
+  $('btnRecordRound').title=P.blockedRound?firstWarn(P):'';
+  $('btnRecordSell').title=P.blockedSell?firstWarn(P):'';
+}
+function renderButtonsBuy(P){
+  $('btnRecordBuy').disabled=!!P.blockedBuy;
+  $('btnRecordBuy').title=P.blockedBuy?firstWarn(P):'';
+}
+function renderButtonsSellBack(P){
+  $('btnRecordSellBack').disabled=!!P.blockedSellBack;
+  $('btnRecordSellBack').title=P.blockedSellBack?firstWarn(P):'';
+}
+function feeText(f){
+  return f.fixed?`固定 ${fmt(f.total)}`:`佣金 ${fmt(f.comm)} + 印花税 ${fmt(f.stamp)} + 过户费 ${fmt(f.transfer)}`;
+}
+function calcTable(rows){
+  return `<table class="calc-table">${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table>`;
+}
+function renderCalcNew(P,R){
+  if(P.qs<=0&&P.qb<=0){ $('planCalc').innerHTML='<div class="muted">输入卖出/买回参数后显示。</div>'; return; }
+  $('planCalc').innerHTML=calcTable([
+    ['卖出金额',`${p4(P.ps)} × ${fmt0(P.qs)} = ${fmt(P.grossSell)}`],
+    ['卖出费用',feeText(P.sell)],
+    ['卖出净回笼',fmt(P.proceeds)],
+    ['减仓后摊薄成本',`${fmt(P.remainDilutedTotal)} ÷ ${fmt0(P.remainQty)} = ${P.remainQty>0?p4(P.dilutedAfterSell):'已清仓'}`],
+    ['买回金额',`${p4(P.pb)} × ${fmt0(P.qb)} = ${fmt(P.grossBuy)}`],
+    ['买回费用',feeText(P.buy)],
+    ['买回支出',fmt(P.outlay)],
+    ['买回后摊薄成本',`${fmt(P.finalDilutedTotal)} ÷ ${fmt0(P.finalQty)} = ${P.finalQty>0?p4(P.dilutedAfterBuy):'—'}`],
+    ['配对净收益',`${signed(P.pairedNet)}（${fmt0(P.paired)} 股）`]
+  ]);
+}
+function renderCalcBuyOnly(P,R,be){
+  if(P.qb<=0){ $('planCalc').innerHTML='<div class="muted">输入买入价/股数后显示。</div>'; return; }
+  $('planCalc').innerHTML=calcTable([
+    ['买入金额',`${p4(P.pb)} × ${fmt0(P.qb)} = ${fmt(P.grossBuy)}`],
+    ['买入费用',feeText(P.buy)],
+    ['买入后摊薄成本',`${fmt(P.afterBuyDilutedTotal)} ÷ ${fmt0(P.afterBuyQty)} = ${P.afterBuyQty>0?p4(P.dilutedAfterBuy):'—'}`],
+    ['保本卖出价',be>0?p4(be):'—'],
+    ['说明','只记买入：本轮待卖出，稍后在未平轮次补记']
+  ]);
+}
+function renderCalcBuy(P,ar,R){
+  $('planCalc').innerHTML=calcTable([
+    ['卖出均价',`${p4(ar.sellAvg)} × ${fmt0(ar.sellQty)}`],
+    ['卖出费用/股',fmt(P.sellFeePer,4)],
+    ['买回价',`${p4(P.pb)} × ${fmt0(P.qb)}`],
+    ['买回费用',feeText(P.buy)],
+    ['本次买回支出',fmt(P.outlay)],
+    ['配对股数',fmt0(P.paired)],
+    ['本次配对净收益',signed(P.pairedNet)],
+    ['买回后摊薄成本',`${fmt(P.finalDilutedTotal)} ÷ ${fmt0(P.finalQty)} = ${P.finalQty>0?p4(P.dilutedAfterBuy):'—'}`]
+  ]);
+}
+function renderCalcSellBack(P,ar,R){
+  $('planCalc').innerHTML=calcTable([
+    ['买入均价',`${p4(ar.buyAvg)} × ${fmt0(ar.buyQty)}`],
+    ['买入费用/股',fmt(P.buyFeePer,4)],
+    ['卖出价',`${p4(P.ps)} × ${fmt0(P.qs)}`],
+    ['卖出费用',feeText(P.sell)],
+    ['本次卖出回笼',fmt(P.proceeds)],
+    ['配对股数',fmt0(P.paired)],
+    ['本次配对净收益',signed(P.pairedNet)],
+    ['卖出后摊薄成本',`${fmt(P.finalDilutedTotal)} ÷ ${fmt0(P.finalQty)} = ${P.finalQty>0?p4(P.dilutedAfterSell):'—'}`]
+  ]);
+}
+
+/* ===================== 渲染：曲线 ===================== */
+function renderChart(R){
+  const svg=$('chart');
+  const W=1000,H=300,padL=68,padR=22,padT=18,padB=32;
+  const rows=R.rows;
+  const last=R.lastPrice;
+  const init=state.init;
+  if(!rows.length&&init.shares<=0&&num(init.cash)<=0){
+    svg.innerHTML=`<text x="500" y="142" text-anchor="middle" font-size="14" fill="#9aa3af">暂无数据</text>
+      <text x="500" y="168" text-anchor="middle" font-size="11" fill="#b0bac7">填写期初持仓，或点右上角“示例”开始</text>`;
+    $('chartFoot').innerHTML='填写期初持仓，或点“示例”开始；记录一轮T后，策略曲线和买入持有基准会自动出现。';
+    return;
+  }
+  const strat=[{asset:R.startAsset,price:init.cost,label:'期初'}]
+    .concat(rows.map(r=>({asset:r.asset,price:r.price,label:r.date})))
+    .concat([{asset:R.endAsset,price:last,label:'期末'}]);
+  const bench=[{asset:R.startAsset,price:init.cost}]
+    .concat(rows.map(r=>({asset:init.cash+init.shares*r.price,price:r.price})))
+    .concat([{asset:init.cash+init.shares*last,price:last}]);
+  const n=strat.length;
+  const all=strat.map(p=>p.asset).concat(bench.map(p=>p.asset)).concat([R.startAsset]);
+  let mn=Math.min(...all),mx=Math.max(...all);
+  if(!Number.isFinite(mn)||!Number.isFinite(mx)){ mn=0; mx=1; }
+  const span0=mx-mn;
+  const span=span0>1e-9?span0:Math.max(1,Math.abs(mx)*0.02);
+  mn-=span*0.12; mx+=span*0.12;
+  const X=i=>n<=1?padL:padL+(i/(n-1))*(W-padL-padR);
+  const Y=v=>padT+(1-(v-mn)/(mx-mn))*(H-padT-padB);
+  const path=arr=>arr.map((p,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(p.asset).toFixed(1)}`).join(' ');
+  const yFmt=v=>Math.abs(v)>=10000?(v/10000).toFixed(1)+'万':fmt0(v);
+  let g='';
+  for(let k=0;k<=4;k++){
+    const y=padT+k*(H-padT-padB)/4;
+    const val=mx-k*(mx-mn)/4;
+    g+=`<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W-padR}" y2="${y.toFixed(1)}" stroke="#eef0f3" stroke-width="1"/>`;
+    g+=`<text x="${padL-8}" y="${(y+3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="#9aa3af">${yFmt(val)}</text>`;
+  }
+  const y0=Y(R.startAsset);
+  g+=`<line x1="${padL}" y1="${y0.toFixed(1)}" x2="${W-padR}" y2="${y0.toFixed(1)}" stroke="#cbd5e1" stroke-dasharray="4 4" stroke-width="1"/>`;
+  g+=`<text x="${W-padR}" y="${(y0-5).toFixed(1)}" text-anchor="end" font-size="9.5" fill="#94a3b8">初始投入</text>`;
+  const area=`${path(strat)} L${X(n-1).toFixed(1)},${H-padB} L${X(0).toFixed(1)},${H-padB} Z`;
+  g+=`<path d="${area}" fill="url(#gAsset)"/>`;
+  g+=`<path d="${path(bench)}" fill="none" stroke="#dc2626" stroke-width="1.6" stroke-dasharray="5 3" stroke-linejoin="round"/>`;
+  g+=`<path d="${path(strat)}" fill="none" stroke="#2f56d9" stroke-width="2.2" stroke-linejoin="round"/>`;
+  rows.forEach((r,i)=>{
+    const x=X(i+1),y=Y(r.asset);
+    g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.2" fill="#2f56d9"><title>${esc(r.date)} ${r.side==='buy'?'买':'卖'} ${fmt0(r.qty)}@${p4(r.price)} · 总资产 ${fmt(r.asset)}</title></circle>`;
+  });
+  const fx=X(n-1),fy=Y(R.endAsset);
+  g+=`<circle cx="${fx.toFixed(1)}" cy="${fy.toFixed(1)}" r="3.6" fill="#2f56d9" stroke="#fff" stroke-width="1.5"/>`;
+  g+=`<text x="${(fx-8).toFixed(1)}" y="${(fy-9).toFixed(1)}" text-anchor="end" font-size="10.5" font-weight="600" fill="#1e3fa8">${fmt(R.endAsset)}</text>`;
+  const xs=new Set([0,n-1]);
+  if(n<=8){ for(let i=1;i<n-1;i++) xs.add(i); }
+  else{ [0.2,0.4,0.6,0.8].forEach(f=>xs.add(Math.round(f*(n-1)))); }
+  [...xs].sort((a,b)=>a-b).forEach(i=>{
+    const x=X(i);
+    const label=i===0?'期初':(i===n-1?'期末':`第${i}笔`);
+    g+=`<text x="${x.toFixed(1)}" y="${H-padB+18}" text-anchor="middle" font-size="9.5" fill="#9aa3af">${label}</text>`;
+  });
+  g+=`<text x="${(W/2).toFixed(1)}" y="${H-4}" text-anchor="middle" font-size="9" fill="#b0bac7">成交笔序 / 期末</text>`;
+  if(!rows.length){
+    g+=`<text x="${(W/2).toFixed(1)}" y="${(padT+(H-padT-padB)/2).toFixed(1)}" text-anchor="middle" font-size="12" fill="#9aa3af">暂无流水，先记录一轮T</text>`;
+  }
+  svg.innerHTML=`<defs><linearGradient id="gAsset" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#2f56d9" stop-opacity=".12"/>
+    <stop offset="100%" stop-color="#2f56d9" stop-opacity="0"/>
+  </linearGradient></defs>${g}`;
+  $('chartFoot').innerHTML=rows.length
+    ?`策略总资产 = 现金 + 持仓市值，期末按 <b>${p4(last)}</b> 估值；表格按成交价估值。基准 = 期初持仓不动到今天。`
+    :`暂无流水。左侧记录一轮T后，策略曲线和买入持有基准会自动出现。`;
+}
+
+/* ===================== 渲染：流水 ===================== */
+function renderLedger(R){
+  const tb=$('tbody');
+  if(!tb) return;
+  const wrap=tb.closest('.table-wrap');
+  const st=wrap?wrap.scrollTop:0;
+  const init=state.init;
+  const initRow=`<tr class="init-row">
+    <td>期初</td><td>持仓</td><td>${p4(init.cost)}</td><td>${fmt0(init.shares)}</td>
+    <td>${fmt(init.shares*init.cost)}</td><td>—</td><td>${fmt0(init.shares)}</td>
+    <td>${p4(init.cost)}</td><td>${p4(init.cost)}</td><td>${fmt(init.cash)}</td>
+    <td>${fmt(init.cash+init.shares*init.cost)}</td><td>—</td><td></td>
+  </tr>`;
+  const rows=(R.rows||[]).map((r,i)=>{
+    const t=state.trades[i];
+    if(!t) return '';
+    const fp=feeParts(t.side,r.price,r.qty,state.settings);
+    const feeTitle=fp.fixed?`固定 ${fmt(state.settings.fixedPerShare,3)} 元/股`:`佣金 ${fmt(fp.comm)} · 印花税 ${fmt(fp.stamp)} · 过户费 ${fmt(fp.transfer)}`;
+    return `<tr class="${(r.shares<0||r.qty<=0||r.price<=0)?'bad-row':''}">
+      <td><input type="date" data-id="${esc(t.id)}" data-f="date" value="${esc(t.date)}"></td>
+      <td><select data-id="${esc(t.id)}" data-f="side"><option value="buy" ${t.side==='buy'?'selected':''}>买入</option><option value="sell" ${t.side==='sell'?'selected':''}>卖出</option></select></td>
+      <td><input class="num" type="number" step="0.01" min="0" data-id="${esc(t.id)}" data-f="price" value="${t.price}"></td>
+      <td><input class="num" type="number" step="100" min="0" data-id="${esc(t.id)}" data-f="qty" value="${t.qty}"></td>
+      <td>${fmt0(r.amount)}</td>
+      <td title="${esc(feeTitle)}">${fmt(r.fee)}</td>
+      <td class="${r.shares<0?'down':''}">${fmt0(r.shares)}</td>
+      <td>${r.shares>0?p4(r.weighted):'—'}</td>
+      <td>${r.shares>0?p4(r.diluted):'—'}</td>
+      <td class="${r.cash<0?'down':''}">${fmt0(r.cash)}</td>
+      <td>${fmt0(r.asset)}</td>
+      <td>${t.roundId?`<span class="tag">${esc(t.roundId)}</span>`:'—'}</td>
+      <td><span class="del" data-del="${esc(t.id)}" title="删除">×</span></td>
+    </tr>`;
+  }).join('');
+  tb.innerHTML=initRow+rows;
+  $('tradeCount').textContent=state.trades.length+' 笔';
+  if(wrap) wrap.scrollTop=st;
+}
+
+/* ===================== 渲染：T+1 / 待买回 / 轮次 / 费率对照 ===================== */
+function renderT1(R){
+  const el=$('t1');
+  const dates=[...new Set(state.trades.map(t=>t.date))].sort();
+  if(!dates.length){ el.innerHTML='<div class="empty">暂无流水。记录一轮T后，这里会按交易日显示可卖校验。</div>'; return; }
+  let shares=state.init.shares;
+  let gaps=0;
+  const rows=dates.map(d=>{
+    const day=state.trades.filter(t=>t.date===d);
+    const sell=day.filter(t=>t.side==='sell').reduce((a,t)=>a+t.qty,0);
+    const buy=day.filter(t=>t.side==='buy').reduce((a,t)=>a+t.qty,0);
+    const prevClose=shares;
+    const gap=Math.max(0,sell-prevClose);
+    if(gap>0) gaps++;
+    const close=prevClose-sell+buy;
+    shares=close;
+    return `<div class="t1-row">
+      <span class="t1-date">${esc(d)}</span>
+      <span class="t1-main">前收 <b>${fmt0(prevClose)}</b> · 卖 <b>${fmt0(sell)}</b> · 买 <b>${fmt0(buy)}</b> · 收盘 <b>${fmt0(close)}</b>${isWeekend(d)?' <span class="tag gray">周末</span>':''}</span>
+      <span class="t1-status ${gap>0?'up':'down'}">${gap>0?`缺口 ${fmt0(gap)} 股`:'合规'}</span>
+    </div>`;
+  }).join('');
+  const warn=gaps>0?`<div class="t1-warn"><b>有 ${gaps} 个交易日卖出量超过前收持仓。</b> A股 T+1 下，当日买入的股份当天不能卖；无论先卖后买还是先买后卖，卖出的都必须是昨仓。请检查卖出数量或日期。</div>`:'';
+  el.innerHTML=warn+rows+`<div class="t1-note">可卖 = 前收持仓 − 当日已卖；当日买入不计入可卖。日期请填交易日，周末仅用于演示。</div>`;
+}
+function renderOpenRounds(rounds,R){
+  const open=rounds.filter(r=>r.status!=='closed'&&(r.sellQty>0||r.buyQty>0));
+  $('openCount').textContent=open.length;
+  if(!open.length){ $('openRounds').innerHTML='<div class="empty">暂无未平轮次。<br>“只记卖出”或“只记买入”后会出现在这里。</div>'; return; }
+  $('openRounds').innerHTML=open.map(r=>{
+    const buyFirst=r.direction==='buy-first';
+    let est,estTxt;
+    if(buyFirst){
+      const avail=Math.min(Math.max(0,R.shares),availabilityAt(state.init,state.trades,todayLocal()));
+      est=computeSellPlan(R,r,{ps:R.lastPrice,qs:r.remaining},state.settings,avail);
+      estTxt=R.lastPrice>0?`按现价 ${p4(R.lastPrice)} 卖出：预计 <b class="${pnlCls(est.pairedNet)}">${signed(est.pairedNet)}</b> 元`:'现价为空，无法估算';
+    }else{
+      est=computeBuyPlan(R,r,{pb:R.lastPrice,qb:r.remaining},state.settings);
+      estTxt=R.lastPrice>0?`按现价 ${p4(R.lastPrice)} 买回：预计 <b class="${pnlCls(est.pairedNet)}">${signed(est.pairedNet)}</b> 元`:'现价为空，无法估算';
+    }
+    const label=r.status==='partial'?(buyFirst?'部分卖出':'部分买回'):(buyFirst?'待卖出':'待买回');
+    const legs=buyFirst
+      ?`买入 <b>${p4(r.buyAvg)}</b> × <b>${fmt0(r.buyQty)}</b> · 已卖出 <b>${fmt0(r.sellQty)}</b> · 剩余 <b>${fmt0(r.remaining)}</b>`
+      :`卖出 <b>${p4(r.sellAvg)}</b> × <b>${fmt0(r.sellQty)}</b> · 已买回 <b>${fmt0(r.buyQty)}</b> · 剩余 <b>${fmt0(r.remaining)}</b>`;
+    const btn=buyFirst?'补记卖出':'补记买回';
+    return `<div class="open-round">
+      <div class="or-head"><b>${esc(r.id)}</b><span class="tag amber">${label} ${fmt0(r.remaining)}</span><span class="muted">${esc(r.date)}</span></div>
+      <div class="or-body">${legs}</div>
+      <div class="or-foot"><span class="or-est">${estTxt}</span><button class="btn small" data-fill="${esc(r.id)}">${btn}</button></div>
+    </div>`;
+  }).join('');
+}
+function renderRounds(rounds,R){
+  const closed=rounds.filter(r=>r.status==='closed'&&r.paired>0);
+  const open=rounds.filter(r=>r.status!=='closed'&&(r.sellQty>0||r.buyQty>0));
+  const tNet=closed.reduce((a,r)=>a+r.pairedNet,0);
+  const wins=closed.filter(r=>r.pairedNet>0).length;
+  const winRate=closed.length?wins/closed.length*100:0;
+  const avg=closed.length?tNet/closed.length:0;
+  const best=closed.length?Math.max(...closed.map(r=>r.pairedNet)):0;
+  const worst=closed.length?Math.min(...closed.map(r=>r.pairedNet)):0;
+  const rs=(k,v,cls)=>`<div class="rs"><div class="k">${k}</div><div class="v ${cls||''}">${v}</div></div>`;
+  const bestWorst=closed.length?`<span class="${pnlCls(best)}">${signed(best)}</span> / <span class="${pnlCls(worst)}">${signed(worst)}</span>`:'—';
+  $('roundStats').innerHTML=[
+    rs('已平轮次',closed.length),
+    rs('未平轮次',open.length),
+    rs('胜率',closed.length?winRate.toFixed(0)+'%':'—'),
+    rs('累计T净收益',closed.length?signed(tNet):'—',pnlCls(tNet)),
+    rs('平均每轮',closed.length?signed(avg):'—',pnlCls(avg)),
+    rs('最佳/最差',bestWorst,'')
+  ].join('');
+  const rows=rounds.map(r=>{
+    const buyFirst=r.direction==='buy-first';
+    const statusTxt=r.status==='closed'?'已平':(r.status==='partial'?(buyFirst?'部分卖出':'部分买回'):(buyFirst?'待卖出':'待买回'));
+    const statusCls=r.status==='closed'?'green':(r.status==='partial'?'amber':'');
+    const net=r.status==='open'?'—':signed(r.pairedNet);
+    const cost=r.costImpact===null?'—':signed(r.costImpact,4);
+    const costClassName=r.costImpact===null?'':costCls(r.costImpact);
+    return `<tr>
+      <td><b>${esc(r.id)}</b></td>
+      <td>${esc(r.date)}</td>
+      <td>${r.sellQty?`${p4(r.sellAvg)} × ${fmt0(r.sellQty)}`:'—'}</td>
+      <td>${r.buyQty?`${p4(r.buyAvg)} × ${fmt0(r.buyQty)}`:'—'}</td>
+      <td>${fmt0(r.paired)}</td>
+      <td>${fmt(r.fees)}</td>
+      <td class="${r.status==='open'?'':pnlCls(r.pairedNet)}">${net}</td>
+      <td class="${costClassName}">${cost}</td>
+      <td>${r.days!==null?r.days+' 天':'—'}</td>
+      <td><span class="tag ${statusCls}">${statusTxt}</span></td>
+    </tr>`;
+  }).join('');
+  $('roundList').innerHTML=rows||`<tr><td colspan="10" style="text-align:center;color:#9aa3af;padding:18px">暂无轮次。左侧“记录整轮 / 只记卖出 / 只记买入”后出现。</td></tr>`;
+  const diff=R.alpha-tNet;
+  $('recon').innerHTML=closed.length
+    ?`对账：累计T净收益 <b>${signed(tNet)}</b>；策略超额收益 <b>${signed(R.alpha)}</b>；差额 <b>${signed(diff)}</b>（未平仓/手动流水/仓位变化）。${Math.abs(diff)<1?' 已对平。':''} 交易日仅跳周末，不含节假日。`
+    :'还没有已平轮次；累计T净收益在买回/卖出完成后计入。交易日仅跳周末，不含节假日。';
+}
+function renderFeeCompare(){
+  const real=computePosition(state.init,state.trades,Object.assign({},state.settings,{feeMode:'real'}));
+  const fixed=computePosition(state.init,state.trades,Object.assign({},state.settings,{feeMode:'fixed'}));
+  const s=state.settings;
+  const realLabel=`实际佣金（万${fmt(s.commission,2)} / 最低${fmt(s.minCommission,2)} / 印花税${fmt(s.stamp,2)}‰ / 过户费${fmt(s.transfer,2)}‱）`;
+  const fixedLabel=`固定佣金（${fmt(s.fixedPerShare,3)} 元/股）`;
+  const diff=fixed.pnl-real.pnl;
+  const row=(label,r,on,isFixed)=>`<tr class="${on?'on-row':''}">
+    <td>${label}</td>
+    <td>${fmt(r.totalFee)}</td>
+    <td>${fmt(r.endAsset)}</td>
+    <td class="${pnlCls(r.pnl)}">${signed(r.pnl)}</td>
+    <td class="${isFixed?pnlCls(diff):''}">${isFixed?signed(diff):'—'}</td>
+  </tr>`;
+  $('feeCompare').innerHTML=`<table class="fee-table"><thead><tr><th>口径</th><th>总费用</th><th>期末总资产</th><th>策略盈亏</th><th>差额（固定−实际）</th></tr></thead><tbody>
+    ${row(realLabel,real,s.feeMode==='real',false)}
+    ${row(fixedLabel,fixed,s.feeMode==='fixed',true)}
+  </tbody></table>
+  <div class="fee-note">对照表独立按两种口径重算，不受当前主视图口径影响。${state.trades.length?`固定口径比实际口径${diff>=0?'多':'少'}赚 <b>${fmt(Math.abs(diff))}</b> 元。`:'暂无流水。'}</div>`;
+}
+
+/* ===================== 渲染：参数 ===================== */
+function renderParams(){
+  const s=state.settings, init=state.init;
+  const set=(id,v)=>{ const el=$(id); if(el) el.value=v; };
+  set('p-shares',init.shares); set('p-cost',init.cost); set('p-cash',init.cash); set('p-last',s.lastPrice);
+  set('p-comm',s.commission); set('p-min',s.minCommission); set('p-stamp',s.stamp); set('p-transfer',s.transfer);
+  set('p-fixed',s.fixedPerShare); set('p-lot',s.lotSize);
+  document.querySelectorAll('#feeModeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.mode===s.feeMode));
+  $('params').className='params '+s.feeMode;
+  if(s.feeMode==='fixed'){
+    $('feeHint').innerHTML=`固定佣金：<b>${fmt(s.fixedPerShare,3)} 元/股</b> × 数量，买卖双边各收一次；不计算最低佣金、印花税、过户费。`;
+  }else{
+    $('feeHint').innerHTML=`实际佣金：佣金 <b>max(成交额×万${fmt(s.commission,2)}, ${fmt(s.minCommission,2)} 元)</b> + 印花税 <b>${fmt(s.stamp,2)}‰</b>（仅卖出） + 过户费 <b>${fmt(s.transfer,2)}‱</b>（双边）。过户费 0.1‱ = 0.001%。`;
+  }
+  $('feeSummary').innerHTML=s.feeMode==='fixed'
+    ?`固定 ${fmt(s.fixedPerShare,3)} 元/股 · 双边`
+    :`万${fmt(s.commission,2)} / 最低${fmt(s.minCommission,2)}元<br>印花税${fmt(s.stamp,2)}‰ · 过户费${fmt(s.transfer,2)}‱`;
+}
+function syncPlanInputs(){
+  const p=state.plan;
+  const set=(id,v)=>{ const el=$(id); if(el) el.value=v; };
+  set('ps',p.ps||''); set('qs',p.qs||''); set('pb',p.pb||''); set('qb',p.qb||'');
+  set('planDate',p.date||todayLocal());
+}
+function readPlanInputs(src){
+  const p=state.plan;
+  p.ps=Math.max(0,num($('ps').value));
+  p.qs=Math.max(0,int($('qs').value));
+  p.pb=Math.max(0,num($('pb').value));
+  p.qb=Math.max(0,int($('qb').value));
+  p.date=validDate($('planDate').value)?$('planDate').value:todayLocal();
+  if(!validDate($('planDate').value)) $('planDate').value=p.date;
+  if(src==='qs'){
+    if(p.qs<=0) $('syncQty').checked=false;
+    else if(!$('syncQty').checked&&p.qb<=0) $('syncQty').checked=true;
+  }
+  const syncOn=$('syncQty').checked&&!state.activeRoundId&&p.qs>0;
+  if(src==='qs'&&syncOn){ p.qb=p.qs; $('qb').value=p.qb||''; }
+  if(src==='qb'&&syncOn){ p.qs=p.qb; $('qs').value=p.qs||''; }
+}
+
+/* ===================== 动作 ===================== */
+function recordNewRound(){
+  const R=computePosition(state.init,state.trades,state.settings);
+  const avail=availabilityAt(state.init,state.trades,state.plan.date);
+  const P=computePlan(R,state.plan,state.settings,avail);
+  if(P.blockedRound){ toast(firstWarn(P),'err'); return; }
+  const roundId=nextRoundId();
+  const now=Date.now();
+  state.trades.push({id:uid(),date:state.plan.date,side:'sell',price:state.plan.ps,qty:state.plan.qs,roundId,createdAt:now,actualFee:null,dir:'sell-first'});
+  state.trades.push({id:uid(),date:state.plan.date,side:'buy',price:state.plan.pb,qty:state.plan.qb,roundId,createdAt:now+1,actualFee:null,dir:'sell-first'});
+  state.activeRoundId=null;
+  state.plan.qs=0; state.plan.qb=0;
+  sortTrades(); syncPlanInputs(); renderAll();
+  toast(`已记录 ${roundId}：卖出 ${fmt0(P.qs)}@${p4(P.ps)} / 买回 ${fmt0(P.qb)}@${p4(P.pb)}`);
+}
+function recordSellOnly(){
+  const R=computePosition(state.init,state.trades,state.settings);
+  const avail=availabilityAt(state.init,state.trades,state.plan.date);
+  const P=computePlan(R,state.plan,state.settings,avail);
+  if(P.blockedSell){ toast(firstWarn(P),'err'); return; }
+  const roundId=nextRoundId();
+  const today=todayLocal();
+  state.trades.push({id:uid(),date:state.plan.date,side:'sell',price:state.plan.ps,qty:state.plan.qs,roundId,createdAt:Date.now(),actualFee:null,dir:'sell-first'});
+  state.activeRoundId=roundId;
+  state.plan.ps=P.ps; state.plan.qs=P.qs;
+  state.plan.pb=state.settings.lastPrice>0?state.settings.lastPrice:P.ps;
+  state.plan.qb=P.qs;
+  state.plan.date=P.date<today?today:P.date;
+  sortTrades(); syncPlanInputs(); renderAll();
+  toast(`已记录 ${roundId} 卖出，等待买回`);
+}
+function recordBuyOnly(){
+  const R=computePosition(state.init,state.trades,state.settings);
+  const avail=availabilityAt(state.init,state.trades,state.plan.date);
+  const P=computeBuyFirstPlan(R,state.plan,state.settings,avail);
+  if(P.blockedBuyOnly){ toast(firstWarn(P),'err'); return; }
+  const roundId=nextRoundId();
+  state.trades.push({id:uid(),date:state.plan.date,side:'buy',price:state.plan.pb,qty:state.plan.qb,roundId,createdAt:Date.now(),actualFee:null,dir:'buy-first'});
+  state.activeRoundId=roundId;
+  state.plan.ps=state.settings.lastPrice>0?state.settings.lastPrice:P.pb;
+  state.plan.qs=P.qb;
+  state.plan.pb=P.pb; state.plan.qb=P.qb;
+  sortTrades(); syncPlanInputs(); renderAll();
+  toast(`已记录 ${roundId} 买入，等待卖出`);
+}
+function recordBuyBack(){
+  const R=computePosition(state.init,state.trades,state.settings);
+  const rounds=groupRounds(R.rows);
+  const ar=rounds.find(r=>r.id===state.activeRoundId);
+  if(!ar){ toast('待买回轮次不存在','err'); return; }
+  if(ar.direction!=='sell-first'){ toast('该轮次在等卖出，请用“记录卖出”','err'); return; }
+  const P=computeBuyPlan(R,ar,state.plan,state.settings);
+  if(P.blockedBuy){ toast(firstWarn(P),'err'); return; }
+  state.trades.push({id:uid(),date:state.plan.date,side:'buy',price:state.plan.pb,qty:state.plan.qb,roundId:ar.id,createdAt:Date.now(),actualFee:null,dir:'sell-first'});
+  sortTrades();
+  const R2=computePosition(state.init,state.trades,state.settings);
+  const rounds2=groupRounds(R2.rows);
+  const ar2=rounds2.find(r=>r.id===ar.id);
+  if(ar2&&ar2.status!=='closed'){
+    state.activeRoundId=ar.id;
+    state.plan.pb=P.pb;
+    state.plan.qb=ar2.remaining;
+    state.plan.qs=ar2.sellQty;
+    state.plan.ps=ar2.sellAvg;
+    state.plan.date=P.date;
+  }else{
+    state.activeRoundId=null;
+    state.plan.qs=0; state.plan.qb=0;
+  }
+  syncPlanInputs(); renderAll();
+  toast(`已补记 ${ar.id} 买回 ${fmt0(P.qb)} 股 @ ${p4(P.pb)}${ar2&&ar2.status!=='closed'?`，还剩 ${fmt0(ar2.remaining)} 股`:'，本轮已平'}`);
+}
+function recordSellBack(){
+  const R=computePosition(state.init,state.trades,state.settings);
+  const rounds=groupRounds(R.rows);
+  const ar=rounds.find(r=>r.id===state.activeRoundId);
+  if(!ar){ toast('待卖出轮次不存在','err'); return; }
+  if(ar.direction!=='buy-first'){ toast('该轮次在等买回，请用“记录买回”','err'); return; }
+  const avail=availabilityAt(state.init,state.trades,state.plan.date);
+  const P=computeSellPlan(R,ar,state.plan,state.settings,avail);
+  if(P.blockedSellBack){ toast(firstWarn(P),'err'); return; }
+  state.trades.push({id:uid(),date:state.plan.date,side:'sell',price:state.plan.ps,qty:state.plan.qs,roundId:ar.id,createdAt:Date.now(),actualFee:null,dir:'buy-first'});
+  sortTrades();
+  const R2=computePosition(state.init,state.trades,state.settings);
+  const rounds2=groupRounds(R2.rows);
+  const ar2=rounds2.find(r=>r.id===ar.id);
+  if(ar2&&ar2.status!=='closed'){
+    state.activeRoundId=ar.id;
+    state.plan.ps=state.plan.ps;
+    state.plan.qs=ar2.remaining;
+    state.plan.pb=ar2.buyAvg;
+    state.plan.qb=ar2.buyQty;
+    state.plan.date=P.date;
+  }else{
+    state.activeRoundId=null;
+    state.plan.qs=0; state.plan.qb=0;
+  }
+  syncPlanInputs(); renderAll();
+  toast(`已补记 ${ar.id} 卖出 ${fmt0(P.qs)} 股 @ ${p4(P.ps)}${ar2&&ar2.status!=='closed'?`，还剩 ${fmt0(ar2.remaining)} 股`:'，本轮已平'}`);
+}
+function selectOpenRound(id){
+  const R=computePosition(state.init,state.trades,state.settings);
+  const rounds=groupRounds(R.rows);
+  const ar=rounds.find(r=>r.id===id);
+  if(!ar||ar.status==='closed'){ toast('该轮次已平或不存在','err'); renderAll(); return; }
+  state.activeRoundId=id;
+  const base=planDayDefault();
+  state.plan.date=ar.date&&ar.date>base?ar.date:base;
+  if(ar.direction==='buy-first'){
+    state.plan.pb=ar.buyAvg;
+    state.plan.qb=ar.buyQty;
+    state.plan.ps=state.settings.lastPrice>0?state.settings.lastPrice:ar.buyAvg;
+    state.plan.qs=ar.remaining;
+  }else{
+    state.plan.ps=ar.sellAvg;
+    state.plan.qs=ar.sellQty;
+    state.plan.pb=state.settings.lastPrice>0?state.settings.lastPrice:(ar.buyQty?ar.buyAvg:ar.sellAvg);
+    state.plan.qb=ar.remaining;
+  }
+  $('syncQty').checked=false;
+  syncPlanInputs();
+  renderAll();
+  toast(`正在补记 ${id} 的${ar.direction==='buy-first'?'卖出':'买回'}`);
+  const planner=document.querySelector('.planner');
+  if(planner) planner.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function cancelBuyBack(){
+  state.activeRoundId=null;
+  $('syncQty').checked=true;
+  state.plan.qs=0; state.plan.qb=0;
+  state.plan.pb=state.settings.lastPrice>0?state.settings.lastPrice:state.plan.pb;
+  syncPlanInputs(); renderAll();
+  toast('已取消补记');
+}
+function fillPlanDemo(){
+  if(state.activeRoundId){ toast('正在补记中，先取消补记再填示例','err'); return; }
+  const R=computePosition(state.init,state.trades,state.settings);
+  const avail=availabilityAt(state.init,state.trades,todayLocal());
+  const ps=R.lastPrice>0?R.lastPrice:(state.init.cost||12.70);
+  const qs=Math.min(2000,Math.floor(avail/100)*100);
+  if(qs<=0){ toast('当前无可卖股份；先填期初持仓或记录买入','err'); return; }
+  const pb=Math.max(0.01,round2(ps-0.30));
+  state.plan={date:planDayDefault(),ps,qs,pb,qb:qs};
+  $('syncQty').checked=true;
+  syncPlanInputs(); renderPlanOnly();
+  toast(`已填入示例：卖出 ${fmt0(qs)} @ ${p4(ps)} / 买回 ${p4(pb)}；把卖出股数改为 0 可试只记买入`);
+}
+function onTableChange(e){
+  const id=e.target.dataset.id, f=e.target.dataset.f;
+  if(!id||!f) return;
+  const t=state.trades.find(x=>x.id===id);
+  if(!t) return;
+  if(f==='date') t.date=validDate(e.target.value)?e.target.value:todayLocal();
+  else if(f==='side') t.side=e.target.value==='sell'?'sell':'buy';
+  else if(f==='price') t.price=Math.max(0,num(e.target.value));
+  else if(f==='qty') t.qty=Math.max(0,int(e.target.value));
+  sortTrades();
+  renderAll();
+}
+function onTableClick(e){
+  const del=e.target.closest('[data-del]');
+  if(!del) return;
+  const id=del.dataset.del;
+  const t=state.trades.find(x=>x.id===id);
+  if(!t) return;
+  if(!confirm(`删除这笔流水？\n${t.date} ${t.side==='buy'?'买入':'卖出'} ${fmt0(t.qty)} @ ${p4(t.price)}`)) return;
+  state.trades=state.trades.filter(x=>x.id!==id);
+  renderAll();
+  toast('已删除');
+}
+function addManualTrade(){
+  const last=state.trades[state.trades.length-1];
+  const price=state.settings.lastPrice>0?state.settings.lastPrice:(last?last.price:state.init.cost);
+  const qty=Math.max(1,int(state.settings.lotSize)||100);
+  state.trades.push({id:uid(),date:todayLocal(),side:'buy',price:price||0,qty,roundId:null,createdAt:Date.now(),actualFee:null});
+  sortTrades(); renderAll();
+  const wrap=$('tbody').closest('.table-wrap');
+  if(wrap) wrap.scrollTop=wrap.scrollHeight;
+  toast('已添加一笔买入，可直接编辑');
+}
+function clearTrades(){
+  if(!state.trades.length) return;
+  if(!confirm('清空全部交易流水？期初持仓和费率会保留。')) return;
+  state.trades=[]; state.activeRoundId=null; state.plan.qs=0; state.plan.qb=0;
+  syncPlanInputs(); renderAll(); toast('已清空流水');
+}
+function clearAll(){
+  if(!confirm('清空所有流水和期初数据？费率设置会保留。')) return;
+  state.init={shares:0,cost:0,cash:0};
+  state.trades=[];
+  state.activeRoundId=null;
+  state.plan={date:todayLocal(),ps:0,qs:0,pb:0,qb:0};
+  state.settings.lastPrice=0;
+  $('syncQty').checked=true;
+  renderParams(); syncPlanInputs(); renderAll(); toast('已清空，可录入新的期初');
+}
+function loadDemo(){
+  if(state.trades.length&&!confirm('载入示例会覆盖当前账本，确定？')) return;
+  state=normalize(demoState());
+  sortTrades();
+  $('syncQty').checked=true;
+  renderParams(); syncPlanInputs(); renderAll();
+  toast('已载入示例：3轮已平 + 1轮待记录');
+}
+function exportJSON(){
+  const data=Object.assign({},state,{exportedAt:new Date().toISOString()});
+  const text=JSON.stringify(data,null,2);
+  if(isNativeApp()){
+    try{
+      const ta=document.createElement('textarea');
+      ta.value=text;
+      ta.style.position='fixed'; ta.style.left='-9999px'; ta.style.top='0'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      const ok=document.execCommand('copy');
+      ta.remove();
+      if(ok) toast('已复制备份 JSON，请粘贴到备忘录/网盘保存');
+      else toast('复制失败，请用浏览器版导出','err');
+    }catch(e){ toast('复制失败，请用浏览器版导出','err'); }
+    return;
+  }
+  try{
+    const blob=new Blob([text],{type:'application/json'});
+    const a=document.createElement('a');
+    const url=URL.createObjectURL(blob);
+    a.href=url;
+    a.download='先沽后卖-备份-'+todayLocal()+'.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1200);
+    toast('已导出备份');
+  }catch(e){ toast('导出失败：'+e.message,'err'); }
+}
+function importText(raw){
+  try{
+    const data=JSON.parse(raw);
+    const next=normalize(data);
+    const hasData=next.trades.length>0||next.init.shares>0||next.init.cost>0;
+    if(!hasData) throw new Error('文件里没有可识别的账本数据');
+    state=next; sortTrades();
+    $('syncQty').checked=true;
+    renderParams(); syncPlanInputs(); renderAll();
+    toast('已导入备份');
+    return true;
+  }catch(e){ toast('导入失败：'+e.message,'err'); return false; }
+}
+function importJSON(file){
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>importText(reader.result);
+  reader.onerror=()=>toast('读取文件失败','err');
+  reader.readAsText(file);
+}
+function openBackup(){
+  $('backupText').value='';
+  $('backupModal').classList.add('show');
+  setTimeout(()=>{ try{ $('backupText').focus(); }catch(e){} },60);
+}
+function closeBackup(){ $('backupModal').classList.remove('show'); }
+function toast(msg,type){
+  const el=$('toast');
+  if(!el) return;
+  el.textContent=msg;
+  el.classList.add('show');
+  el.classList.toggle('err',type==='err');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2400);
+}
+
+/* ===================== 事件绑定与启动 ===================== */
+function bindEvents(){
+  if(isNativeApp()){
+    $('btnExport').textContent='复制备份';
+    $('btnImport').textContent='粘贴导入';
+  }
+  $('btnDemo').addEventListener('click',loadDemo);
+  $('btnExport').addEventListener('click',exportJSON);
+  $('btnImport').addEventListener('click',()=>{
+    if(isNativeApp()){ openBackup(); return; }
+    $('fileImport').click();
+  });
+  $('backupCancel').addEventListener('click',closeBackup);
+  $('backupOk').addEventListener('click',()=>{
+    const txt=$('backupText').value.trim();
+    if(!txt){ toast('请先粘贴备份 JSON','err'); return; }
+    if(importText(txt)) closeBackup();
+  });
+  $('backupModal').addEventListener('click',e=>{ if(e.target===$('backupModal')) closeBackup(); });
+  $('fileImport').addEventListener('change',e=>{
+    const f=e.target.files&&e.target.files[0];
+    importJSON(f);
+    e.target.value='';
+  });
+  $('btnClear').addEventListener('click',clearAll);
+
+  const bind=(id,apply)=>{
+    const el=$(id);
+    if(!el) return;
+    el.addEventListener('change',e=>{
+      apply(e.target.value);
+      renderParams();
+      renderAll();
+    });
+  };
+  bind('p-shares',v=>state.init.shares=Math.max(0,int(v)));
+  bind('p-cost',v=>state.init.cost=Math.max(0,num(v)));
+  bind('p-cash',v=>state.init.cash=num(v));
+  bind('p-last',v=>state.settings.lastPrice=Math.max(0,num(v)));
+  bind('p-comm',v=>state.settings.commission=Math.max(0,num(v)));
+  bind('p-min',v=>state.settings.minCommission=Math.max(0,num(v)));
+  bind('p-stamp',v=>state.settings.stamp=Math.max(0,num(v)));
+  bind('p-transfer',v=>state.settings.transfer=Math.max(0,num(v)));
+  bind('p-fixed',v=>state.settings.fixedPerShare=Math.max(0,num(v)));
+  bind('p-lot',v=>state.settings.lotSize=Math.max(1,int(v)||100));
+
+  $('feeModeSeg').addEventListener('click',e=>{
+    const b=e.target.closest('button');
+    if(!b) return;
+    state.settings.feeMode=b.dataset.mode==='fixed'?'fixed':'real';
+    renderParams(); renderAll();
+    toast(state.settings.feeMode==='fixed'?'已切换：固定佣金口径':'已切换：实际佣金口径');
+  });
+
+  ['ps','qs','pb','qb'].forEach(id=>{
+    const el=$(id);
+    if(el) el.addEventListener('input',()=>{ readPlanInputs(id); renderPlanOnly(); });
+  });
+  $('planDate').addEventListener('change',()=>{ readPlanInputs('date'); renderPlanOnly(); });
+  $('syncQty').addEventListener('change',()=>{
+    if(state.activeRoundId||state.plan.qs<=0) return;
+    if($('syncQty').checked){
+      state.plan.qb=state.plan.qs;
+      $('qb').value=state.plan.qb||'';
+      renderPlanOnly();
+    }
+  });
+
+  $('btnRecordRound').addEventListener('click',recordNewRound);
+  $('btnRecordSell').addEventListener('click',()=>{
+    if(state.activeRoundId) return;
+    if(state.plan.qs<=0) recordBuyOnly(); else recordSellOnly();
+  });
+  $('btnRecordBuy').addEventListener('click',recordBuyBack);
+  $('btnRecordSellBack').addEventListener('click',recordSellBack);
+  $('btnCancelBuy').addEventListener('click',cancelBuyBack);
+  $('btnPlanDemo').addEventListener('click',fillPlanDemo);
+
+  $('tbody').addEventListener('change',onTableChange);
+  $('tbody').addEventListener('click',onTableClick);
+  $('btnAddTrade').addEventListener('click',addManualTrade);
+  $('btnClearTrades').addEventListener('click',clearTrades);
+
+  $('openRounds').addEventListener('click',e=>{
+    const b=e.target.closest('[data-fill]');
+    if(b) selectOpenRound(b.dataset.fill);
+  });
+
+  window.addEventListener('beforeunload',saveNow);
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden) saveNow(); });
+}
+
+function init(){
+  state=loadState();
+  let isDemo=false;
+  if(!state){ state=demoState(); isDemo=true; }
+  state=normalize(state);
+  sortTrades();
+  renderParams();
+  syncPlanInputs();
+  renderAll();
+  bindEvents();
+  if(isDemo) setTimeout(()=>toast('已载入示例数据，可直接改参数'),400);
+}
+
+window.__T={feeParts,feeOf,computePosition,availabilityAt,computePlan,computeBuyFirstPlan,computeBuyPlan,computeSellPlan,groupRounds,breakevenBuy,breakevenSell,getState:()=>state,renderAll,saveNow};
+init();
+
+})();
+</script>
+</body>
+</html>
