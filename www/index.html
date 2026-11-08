@@ -264,6 +264,31 @@
   #backupText{width:100%;height:240px;border:1px solid var(--line);border-radius:9px;padding:10px;font:12px var(--num);resize:vertical;outline:none;background:#fbfcfe;color:var(--ink)}
   #backupText:focus{border-color:#9db4ff;box-shadow:0 0 0 3px rgba(47,86,217,.1);background:#fff}
   .backup-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+  .position-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:linear-gradient(180deg,#fff,#f9fbff);border:1px solid var(--line);border-radius:14px;padding:11px 15px;margin:14px 0 12px;box-shadow:0 8px 24px -22px rgba(18,32,66,.35)}
+  .position-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0;flex:1 1 auto}
+  .position-kicker{font-size:10.5px;font-weight:650;color:var(--muted);letter-spacing:.08em;white-space:nowrap}
+  .position-select{max-width:min(460px,100%);border:1px solid #cbd8ee;border-radius:9px;background:#fff;color:var(--ink);font:650 13.5px/1.3 var(--ui);padding:7px 10px;cursor:pointer;min-width:0}
+  .position-select:focus{outline:none;border-color:#9db4ff;box-shadow:0 0 0 3px rgba(47,86,217,.1)}
+  .position-meta{font-size:10.5px;color:var(--muted);white-space:nowrap}
+  .position-right{display:flex;gap:8px;flex-wrap:wrap}
+  .stock-tag{background:#eef4ff;color:#2f56d9;border:1px solid #dbe6ff;font-weight:650;letter-spacing:.02em}
+  .stock-tag.empty{background:#fff7ed;color:#b45309;border-color:#fde6c7}
+  .backup-box.wide{width:min(840px,100%)}
+  .positions-list{overflow:auto;max-height:52vh;margin:2px 0 4px;padding:0 2px}
+  .position-item{display:flex;gap:10px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:11px;padding:9px 11px;margin-bottom:8px;background:#fbfcfe;transition:border-color .12s,background .12s}
+  .position-item:hover{border-color:#c9d8f5;background:#f7faff}
+  .position-item.active{border-color:#9db4ff;background:#f4f8ff;box-shadow:0 0 0 2px rgba(47,86,217,.06)}
+  .pi-main{flex:1;min-width:0;text-align:left;background:none;border:0;padding:0;cursor:pointer;font:inherit;color:inherit}
+  .pi-code{font:650 13.5px var(--num);color:var(--ink);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .pi-name{font:400 11.5px var(--ui);color:var(--muted)}
+  .pi-meta{font-size:10.5px;color:var(--muted);margin-top:4px;line-height:1.55}
+  .pi-actions{display:flex;gap:6px;flex-shrink:0}
+  .pos-form{display:grid;gap:9px}
+  .pos-form .field>span{font-size:10.5px;color:var(--muted);margin-bottom:4px}
+  .pos-form .row2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .pos-form .field input{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:13px;background:#fff;color:var(--ink);min-width:0}
+  .pos-form .field input:focus{outline:none;border-color:#9db4ff;box-shadow:0 0 0 3px rgba(47,86,217,.1)}
+  .trades{min-width:1010px}
   footer{margin-top:18px;font-size:10.5px;color:var(--muted);line-height:1.8;padding:0 2px}
   footer b{color:var(--ink2);font-weight:600}
 
@@ -309,6 +334,23 @@
     .actions .btn{flex:1 1 auto}
     .top{gap:10px}
   }
+  @media (max-width:760px){
+    .brand{flex:1 1 100%;align-items:flex-start}
+    .brand>.mark{flex:0 0 auto}
+    .brand>div:not(.mark){min-width:0;flex:1}
+    .brand p{white-space:normal;line-height:1.5;overflow-wrap:anywhere}
+    .card-head{flex-wrap:wrap;row-gap:6px}
+    .head-right{flex-wrap:wrap;justify-content:flex-end}
+    .pos-strip{white-space:normal;line-height:1.6}
+    .position-bar{padding:10px 12px;gap:8px}
+    .position-left{width:100%}
+    .position-select{flex:1;max-width:none}
+    .position-meta{width:100%}
+    .position-right{width:100%}
+    .position-right .btn{flex:1}
+    .position-item{flex-direction:column;align-items:stretch}
+    .pi-actions{justify-content:flex-end}
+  }
 </style>
 </head>
 <body>
@@ -319,17 +361,29 @@
       <div class="mark">沽</div>
       <div>
         <h1>先沽后补 <span class="sub-mark">A股做T账本</span></h1>
-        <p>先卖出，再买回 · 卖出 0 股可只记买入 · 真实费率 · 总资产曲线 · 交易流水</p>
+        <p>先卖出，再买回 · 卖出 0 股可只记买入 · 多股票仓位 · 真实费率 · 交易流水</p>
       </div>
     </div>
     <div class="actions">
       <button class="btn" id="btnDemo">示例</button>
       <button class="btn" id="btnExport">导出</button>
       <button class="btn" id="btnImport">导入</button>
-      <button class="btn danger" id="btnClear">清空</button>
+      <button class="btn danger" id="btnClear">清空当前</button>
       <input type="file" id="fileImport" accept=".json,application/json" style="display:none">
     </div>
   </header>
+
+  <section class="position-bar">
+    <div class="position-left">
+      <span class="position-kicker">当前仓位</span>
+      <select id="positionSelect" class="position-select" aria-label="切换股票仓位"></select>
+      <span class="position-meta" id="positionMeta"></span>
+    </div>
+    <div class="position-right">
+      <button class="btn small" id="btnNewPosition">+ 新建仓位</button>
+      <button class="btn small" id="btnPositions">仓位列表</button>
+    </div>
+  </section>
 
   <div class="global-warn" id="globalWarn"></div>
   <section class="kpis" id="kpis"></section>
@@ -341,6 +395,7 @@
         <h2>本轮做T</h2>
         <div class="head-right">
           <span class="badge" id="planBadge">先卖后买</span>
+          <span class="tag stock-tag" id="planStockTag">—</span>
           <button class="link" id="btnPlanDemo">填示例</button>
         </div>
       </div>
@@ -407,6 +462,8 @@
           </div>
         </div>
         <div class="params real" id="params">
+          <div class="p"><label>股票代码</label><input id="p-code" type="text" maxlength="12" placeholder="如 600000" autocomplete="off"></div>
+          <div class="p"><label>股票名称（可选）</label><input id="p-name" type="text" maxlength="20" placeholder="如 浦发银行" autocomplete="off"></div>
           <div class="p"><label>初始持仓（股）</label><input id="p-shares" type="number" step="100" min="0"></div>
           <div class="p"><label>初始成本价（元）</label><input id="p-cost" type="number" step="0.001" min="0"></div>
           <div class="p"><label>初始现金（元）</label><input id="p-cash" type="number" step="100" min="0"></div>
@@ -446,6 +503,7 @@
           <table class="trades">
             <thead><tr>
               <th style="width:96px">日期</th>
+              <th style="width:64px">股票</th>
               <th style="width:50px">方向</th>
               <th style="width:66px">价格</th>
               <th style="width:70px">数量</th>
@@ -477,7 +535,7 @@
       </div>
 
       <section class="card">
-        <div class="card-head"><h2>T轮次统计</h2></div>
+        <div class="card-head"><h2>T轮次统计 <span class="tag stock-tag" id="statsStock">—</span></h2></div>
         <div class="round-stats" id="roundStats"></div>
         <div class="table-wrap" style="max-height:330px">
           <table class="round-table">
@@ -509,8 +567,40 @@
   <footer>
     <b>口径说明：</b>“加权成本”是移动加权平均买入成本，卖出不变；“摊薄成本”是卖出回款冲减后的保本价。<br>
     <b>费率说明：</b>实际佣金 = 佣金 max(成交额×万分之, 最低佣金) + 印花税（仅卖出）+ 过户费（双边，按成交额×万分之）。过户费 0.1‱ = 0.001%。<br>
-    <b>数据：</b>仅保存在本机浏览器；换浏览器/清缓存前请先“导出”备份。本工具用于个人复盘，不构成投资建议。
+    <b>数据：</b>多仓位数据仅保存在本机浏览器；换浏览器/清缓存前请先“导出/复制备份”。本工具用于个人复盘，不构成投资建议。
   </footer>
+</div>
+
+<div class="backup-modal" id="positionsModal">
+  <div class="backup-box wide">
+    <div class="backup-head">仓位列表 <span class="muted" id="positionsCount"></span></div>
+    <div class="backup-hint">每只股票一个仓位；点一行切换。切换/新建/编辑后自动保存在本机，导出备份时会包含全部仓位。</div>
+    <div class="positions-list" id="positionsList"></div>
+    <div class="backup-actions">
+      <button class="btn" id="positionsClose">关闭</button>
+      <button class="btn primary" id="positionsNew">+ 新建仓位</button>
+    </div>
+  </div>
+</div>
+
+<div class="backup-modal" id="newPosModal">
+  <div class="backup-box">
+    <div class="backup-head">新建仓位</div>
+    <div class="backup-hint">每只股票一个仓位；股票代码不能与已有仓位重复。期初数据可以先留空，创建后在参数区补。</div>
+    <div class="pos-form">
+      <label class="field"><span>股票代码</span><input id="newPosCode" type="text" maxlength="12" placeholder="如 600000" autocomplete="off"></label>
+      <label class="field"><span>股票名称（可选）</span><input id="newPosName" type="text" maxlength="20" placeholder="如 浦发银行" autocomplete="off"></label>
+      <div class="row2">
+        <label class="field"><span>期初持仓（股）</span><input id="newPosShares" type="number" step="100" min="0" placeholder="0"></label>
+        <label class="field"><span>期初成本价（元）</span><input id="newPosCost" type="number" step="0.001" min="0" placeholder="0"></label>
+      </div>
+      <label class="field"><span>期初现金（元）</span><input id="newPosCash" type="number" step="100" min="0" placeholder="0"></label>
+    </div>
+    <div class="backup-actions">
+      <button class="btn" id="newPosCancel">取消</button>
+      <button class="btn primary" id="newPosCreate">创建并切换</button>
+    </div>
+  </div>
 </div>
 
 <div class="backup-modal" id="backupModal">
@@ -532,7 +622,8 @@
 'use strict';
 
 /* ===================== 常量与工具 ===================== */
-const KEY = 'xianguo-t.v1';
+const KEY = 'xianguo-t.v2';
+const LEGACY_KEY = 'xianguo-t.v1';
 const DEFAULTS = {
   feeMode: 'real',
   commission: 2.5,
@@ -544,6 +635,9 @@ const DEFAULTS = {
   lastPrice: 0
 };
 let state = null;
+let store = null;
+let activeId = null;
+let migratedFromLegacy = false;
 let saveTimer = null;
 let toastTimer = null;
 let storageOk = true;
@@ -651,18 +745,103 @@ function normalize(raw){
   }
   return st;
 }
-function loadState(){
+function blankState(init,settings){
+  return normalize({
+    init:init||{},
+    settings:settings||{},
+    trades:[],
+    plan:{date:planDayDefault(),ps:0,qs:0,pb:0,qb:0},
+    activeRoundId:null
+  });
+}
+function normalizePosition(raw){
+  const r=(raw&&typeof raw==='object')?raw:{};
+  const st=normalize(r.state&&typeof r.state==='object'?r.state:r);
+  const created=Number.isFinite(+r.createdAt)?+r.createdAt:Date.now();
+  const updated=Number.isFinite(+r.updatedAt)?+r.updatedAt:created;
+  return {
+    id:r.id?String(r.id):uid(),
+    code:String(r.code==null?'':r.code).trim(),
+    name:String(r.name==null?'':r.name).trim(),
+    createdAt:created,
+    updatedAt:updated,
+    state:st
+  };
+}
+function normalizeStore(raw){
+  const s=(raw&&typeof raw==='object')?raw:{};
+  let positions=[];
+  if(Array.isArray(s.positions)){
+    positions=s.positions.map(normalizePosition);
+  }else if(s.init||s.trades||s.settings||s.plan){
+    positions=[normalizePosition({code:s.code,name:s.name,state:s})];
+  }
+  const seen=new Set();
+  positions=positions.filter(p=>{ if(seen.has(p.id)) return false; seen.add(p.id); return true; });
+  if(!positions.length) positions=[normalizePosition({})];
+  const active=positions.find(p=>p.id===String(s.activeId||''))||positions[0];
+  return {version:2,activeId:active.id,positions};
+}
+function demoStore(){
+  const first=normalizePosition({code:'600000',name:'示例股票',state:demoState(),createdAt:Date.now()-86400000,updatedAt:Date.now()});
+  const secondState=normalize({
+    init:{shares:5000,cost:11.20,cash:12000},
+    settings:Object.assign({},DEFAULTS,{lastPrice:11.35}),
+    trades:[
+      {id:'e1',date:'2026-11-04',side:'sell',price:11.48,qty:1000,roundId:'T1',createdAt:2001,actualFee:null,dir:'sell-first'},
+      {id:'e2',date:'2026-11-04',side:'buy',price:11.16,qty:1000,roundId:'T1',createdAt:2002,actualFee:null,dir:'sell-first'}
+    ],
+    plan:{date:planDayDefault(),ps:11.35,qs:1000,pb:11.10,qb:1000},
+    activeRoundId:null
+  });
+  const second=normalizePosition({code:'000001',name:'示例银行',state:secondState,createdAt:Date.now()-172800000,updatedAt:Date.now()-3600000});
+  return {version:2,activeId:first.id,positions:[first,second]};
+}
+function activePosition(){ return store?(store.positions.find(p=>p.id===activeId)||null):null; }
+function activeCode(){ const p=activePosition(); return p?(p.code||''):''; }
+function activeName(){ const p=activePosition(); return p?(p.name||''):''; }
+function positionLabel(p){
+  const code=String(p&&p.code||'').trim();
+  const name=String(p&&p.name||'').trim();
+  if(code&&name) return code+' '+name;
+  if(code) return code;
+  if(name) return name;
+  return '未命名仓位';
+}
+function positionCodeExists(code,exceptId){
+  const c=String(code==null?'':code).trim().toLowerCase();
+  if(!c||!store) return false;
+  return store.positions.some(p=>p.id!==exceptId&&String(p.code||'').trim().toLowerCase()===c);
+}
+function syncActiveState(){
+  const p=activePosition();
+  if(p&&state){ p.state=state; p.updatedAt=Date.now(); }
+}
+function loadStore(){
   try{
     const raw=localStorage.getItem(KEY);
-    if(!raw) return null;
-    const parsed=JSON.parse(raw);
-    if(!parsed || typeof parsed!=='object') return null;
-    return normalize(parsed);
-  }catch(e){ return null; }
+    if(raw){
+      const parsed=JSON.parse(raw);
+      if(parsed&&typeof parsed==='object') return normalizeStore(parsed);
+    }
+    const legacy=localStorage.getItem(LEGACY_KEY);
+    if(legacy){
+      const parsed=JSON.parse(legacy);
+      if(parsed&&typeof parsed==='object'&&(parsed.init||parsed.trades)){
+        migratedFromLegacy=true;
+        return normalizeStore(parsed);
+      }
+    }
+  }catch(e){}
+  return null;
 }
 function saveNow(){
-  if(!state) return;
-  try{ localStorage.setItem(KEY,JSON.stringify(state)); }
+  if(!state||!store) return;
+  syncActiveState();
+  const data={version:2,activeId,positions:store.positions.map(p=>({
+    id:p.id,code:p.code,name:p.name,createdAt:p.createdAt,updatedAt:p.updatedAt,state:p.state
+  }))};
+  try{ localStorage.setItem(KEY,JSON.stringify(data)); }
   catch(e){ if(storageOk){ storageOk=false; toast('浏览器禁用了本地存储，请用“导出”备份','err'); } }
 }
 function save(){ clearTimeout(saveTimer); saveTimer=setTimeout(saveNow,180); }
@@ -1023,6 +1202,31 @@ function groupRounds(rows){
   return out;
 }
 
+/* ===================== 渲染：仓位栏 ===================== */
+function renderPositionBar(){
+  if(!store) return;
+  const sel=$('positionSelect');
+  if(sel){
+    sel.innerHTML=store.positions.map(p=>{
+      const R=computePosition(p.state.init,p.state.trades,p.state.settings);
+      return `<option value="${esc(p.id)}"${p.id===activeId?' selected':''}>${esc(positionLabel(p))} · ${fmt0(R.shares)}股</option>`;
+    }).join('');
+    sel.value=activeId;
+  }
+  const p=activePosition();
+  const code=p?p.code:'';
+  const meta=$('positionMeta');
+  if(meta) meta.textContent=`共 ${store.positions.length} 个仓位 · 自动保存`;
+  const planTag=$('planStockTag');
+  if(planTag){ planTag.textContent=code||'未填代码'; planTag.classList.toggle('empty',!code); }
+  const statsTag=$('statsStock');
+  if(statsTag){ statsTag.textContent=code||'—'; statsTag.classList.toggle('empty',!code); }
+  const codeEl=$('p-code');
+  if(codeEl&&document.activeElement!==codeEl) codeEl.value=code;
+  const nameEl=$('p-name');
+  if(nameEl&&document.activeElement!==nameEl) nameEl.value=p?p.name:'';
+}
+
 /* ===================== 渲染：总控 ===================== */
 function renderAll(){
   sortTrades();
@@ -1032,6 +1236,7 @@ function renderAll(){
     const ar=rounds.find(r=>r.id===state.activeRoundId);
     if(!ar||ar.status==='closed') state.activeRoundId=null;
   }
+  renderPositionBar();
   renderGlobalWarn(R);
   renderKPIs(R,rounds);
   renderPlan(R,rounds);
@@ -1062,6 +1267,7 @@ function renderGlobalWarn(R){
   if(R.shares<0) msgs.push('当前持仓为负：卖出数量超过持仓，成本与盈亏不成立。');
   if(state.init.shares>0&&state.init.cost<=0) msgs.push('初始成本价为空，无法计算成本。');
   if(state.settings.lastPrice<=0) msgs.push('期末市价为空，暂按最后成交价/初始成本估值。');
+  if(!activeCode()) msgs.push('当前仓位还没填股票代码；在“期初与费率参数”里补上后，交易流水和仓位列表都会显示。');
   const el=$('globalWarn');
   if(msgs.length){ el.innerHTML='⚠ '+msgs.map(esc).join('　'); el.classList.add('show'); }
   else{ el.innerHTML=''; el.classList.remove('show'); }
@@ -1522,7 +1728,7 @@ function renderLedger(R){
   const st=wrap?wrap.scrollTop:0;
   const init=state.init;
   const initRow=`<tr class="init-row">
-    <td>期初</td><td>持仓</td><td>${p4(init.cost)}</td><td>${fmt0(init.shares)}</td>
+    <td>期初</td><td>${esc(activeCode()||'—')}</td><td>持仓</td><td>${p4(init.cost)}</td><td>${fmt0(init.shares)}</td>
     <td>${fmt(init.shares*init.cost)}</td><td>—</td><td>${fmt0(init.shares)}</td>
     <td>${p4(init.cost)}</td><td>${p4(init.cost)}</td><td>${fmt(init.cash)}</td>
     <td>${fmt(init.cash+init.shares*init.cost)}</td><td>—</td><td></td>
@@ -1534,6 +1740,7 @@ function renderLedger(R){
     const feeTitle=fp.fixed?`固定 ${fmt(state.settings.fixedPerShare,3)} 元/股`:`佣金 ${fmt(fp.comm)} · 印花税 ${fmt(fp.stamp)} · 过户费 ${fmt(fp.transfer)}`;
     return `<tr class="${(r.shares<0||r.qty<=0||r.price<=0)?'bad-row':''}">
       <td><input type="date" data-id="${esc(t.id)}" data-f="date" value="${esc(t.date)}"></td>
+      <td>${esc(activeCode()||'—')}</td>
       <td><select data-id="${esc(t.id)}" data-f="side"><option value="buy" ${t.side==='buy'?'selected':''}>买入</option><option value="sell" ${t.side==='sell'?'selected':''}>卖出</option></select></td>
       <td><input class="num" type="number" step="0.01" min="0" data-id="${esc(t.id)}" data-f="price" value="${t.price}"></td>
       <td><input class="num" type="number" step="100" min="0" data-id="${esc(t.id)}" data-f="qty" value="${t.qty}"></td>
@@ -1675,6 +1882,7 @@ function renderFeeCompare(){
 function renderParams(){
   const s=state.settings, init=state.init;
   const set=(id,v)=>{ const el=$(id); if(el) el.value=v; };
+  set('p-code',activeCode()); set('p-name',activeName());
   set('p-shares',init.shares); set('p-cost',init.cost); set('p-cash',init.cash); set('p-last',s.lastPrice);
   set('p-comm',s.commission); set('p-min',s.minCommission); set('p-stamp',s.stamp); set('p-transfer',s.transfer);
   set('p-fixed',s.fixedPerShare); set('p-lot',s.lotSize);
@@ -1892,32 +2100,142 @@ function addManualTrade(){
   if(wrap) wrap.scrollTop=wrap.scrollHeight;
   toast('已添加一笔买入，可直接编辑');
 }
+/* ===================== 多仓位操作 ===================== */
+function activatePosition(id){
+  if(!store||!id||id===activeId) return;
+  const p=store.positions.find(x=>x.id===id);
+  if(!p) return;
+  saveNow();
+  activeId=p.id;
+  state=p.state;
+  $('syncQty').checked=true;
+  closePositions(); closeNewPosition();
+  renderParams(); syncPlanInputs(); renderAll();
+  toast(`已切换到 ${positionLabel(p)}`);
+}
+function openPositions(){
+  saveNow();
+  renderPositionsList();
+  $('positionsModal').classList.add('show');
+}
+function closePositions(){ $('positionsModal').classList.remove('show'); }
+function renderPositionsList(){
+  const el=$('positionsList');
+  if(!el||!store) return;
+  const count=$('positionsCount');
+  if(count) count.textContent=`${store.positions.length} 个`;
+  el.innerHTML=store.positions.map(p=>{
+    const R=computePosition(p.state.init,p.state.trades,p.state.settings);
+    const rounds=groupRounds(R.rows);
+    const closed=rounds.filter(r=>r.status==='closed').length;
+    const open=rounds.filter(r=>r.status!=='closed'&&(r.sellQty>0||r.buyQty>0)).length;
+    const active=p.id===activeId;
+    const upd=new Date(p.updatedAt||Date.now()).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return `<div class="position-item${active?' active':''}">
+      <button type="button" class="pi-main" data-switch="${esc(p.id)}">
+        <div class="pi-code">${p.code?esc(p.code):'<span class="muted">未填代码</span>'}${p.name?` <span class="pi-name">${esc(p.name)}</span>`:''}${active?' <span class="tag">当前</span>':''}</div>
+        <div class="pi-meta">${fmt0(R.shares)} 股 · 加权 ${R.shares>0?p4(R.weighted):'—'} · 摊薄 ${R.shares>0?p4(R.diluted):'—'} · ${closed} 轮已平${open?` · ${open} 轮未平`:''} · 更新 ${esc(upd)}</div>
+      </button>
+      <div class="pi-actions">
+        <button type="button" class="btn small" data-switch="${esc(p.id)}">${active?'当前':'切换'}</button>
+        <button type="button" class="btn small danger" data-delpos="${esc(p.id)}" ${store.positions.length<=1?'disabled':''}>删除</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function deletePosition(id){
+  if(!store) return;
+  const p=store.positions.find(x=>x.id===id);
+  if(!p) return;
+  if(store.positions.length<=1){ toast('至少保留一个仓位','err'); return; }
+  if(!confirm(`删除仓位「${positionLabel(p)}」？该仓位的交易流水会一起删除，且不可恢复。`)) return;
+  saveNow();
+  store.positions=store.positions.filter(x=>x.id!==id);
+  if(id===activeId){
+    activeId=store.positions[0].id;
+    state=store.positions[0].state;
+    $('syncQty').checked=true;
+  }
+  renderPositionsList(); renderParams(); syncPlanInputs(); renderAll();
+  toast('已删除仓位');
+}
+function openNewPosition(){
+  ['newPosCode','newPosName','newPosShares','newPosCost','newPosCash'].forEach(id=>{ const el=$(id); if(el) el.value=''; });
+  $('newPosModal').classList.add('show');
+  setTimeout(()=>{ try{ $('newPosCode').focus(); }catch(e){} },60);
+}
+function closeNewPosition(){ $('newPosModal').classList.remove('show'); }
+function createPosition(){
+  const code=$('newPosCode').value.trim();
+  if(!code){ toast('请填股票代码','err'); return; }
+  if(positionCodeExists(code,null)){ toast('该股票代码已有仓位','err'); return; }
+  const name=$('newPosName').value.trim();
+  const shares=Math.max(0,int($('newPosShares').value));
+  const cost=Math.max(0,num($('newPosCost').value));
+  const cash=num($('newPosCash').value);
+  const settings=Object.assign({},state.settings,{lastPrice:cost>0?cost:0});
+  const p=normalizePosition({code,name,state:blankState({shares,cost,cash},settings),createdAt:Date.now(),updatedAt:Date.now()});
+  saveNow();
+  store.positions.push(p);
+  activeId=p.id;
+  state=p.state;
+  closeNewPosition(); closePositions();
+  $('syncQty').checked=true;
+  renderParams(); syncPlanInputs(); renderAll();
+  toast(`已新建仓位 ${positionLabel(p)}`);
+}
+function updatePositionCode(){
+  const p=activePosition();
+  if(!p) return;
+  const code=$('p-code').value.trim();
+  if(positionCodeExists(code,p.id)){
+    toast('该股票代码已被其他仓位使用','err');
+    $('p-code').value=p.code;
+    return;
+  }
+  p.code=code;
+  p.updatedAt=Date.now();
+  renderAll();
+  toast(code?'股票代码已更新':'已清空股票代码');
+}
+function updatePositionName(){
+  const p=activePosition();
+  if(!p) return;
+  p.name=$('p-name').value.trim();
+  p.updatedAt=Date.now();
+  renderAll();
+}
 function clearTrades(){
   if(!state.trades.length) return;
-  if(!confirm('清空全部交易流水？期初持仓和费率会保留。')) return;
+  if(!confirm(`清空当前仓位「${positionLabel(activePosition())}」的全部交易流水？期初持仓和费率会保留。`)) return;
   state.trades=[]; state.activeRoundId=null; state.plan.qs=0; state.plan.qb=0;
-  syncPlanInputs(); renderAll(); toast('已清空流水');
+  syncPlanInputs(); renderAll(); toast('已清空当前仓位流水');
 }
 function clearAll(){
-  if(!confirm('清空所有流水和期初数据？费率设置会保留。')) return;
+  if(!confirm(`清空当前仓位「${positionLabel(activePosition())}」的所有流水和期初数据？股票代码/名称和其他仓位会保留，费率保留。`)) return;
   state.init={shares:0,cost:0,cash:0};
   state.trades=[];
   state.activeRoundId=null;
   state.plan={date:todayLocal(),ps:0,qs:0,pb:0,qb:0};
   state.settings.lastPrice=0;
   $('syncQty').checked=true;
-  renderParams(); syncPlanInputs(); renderAll(); toast('已清空，可录入新的期初');
+  renderParams(); syncPlanInputs(); renderAll(); toast('已清空当前仓位，可录入新的期初');
 }
 function loadDemo(){
-  if(state.trades.length&&!confirm('载入示例会覆盖当前账本，确定？')) return;
-  state=normalize(demoState());
+  if(!confirm('载入示例会覆盖当前所有仓位，确定？')) return;
+  store=demoStore();
+  activeId=store.activeId;
+  state=activePosition().state;
   sortTrades();
   $('syncQty').checked=true;
   renderParams(); syncPlanInputs(); renderAll();
-  toast('已载入示例：3轮已平 + 1轮待记录');
+  toast('已载入示例：2 个仓位，可左上角切换');
 }
 function exportJSON(){
-  const data=Object.assign({},state,{exportedAt:new Date().toISOString()});
+  saveNow();
+  const data={version:2,activeId,positions:store.positions.map(p=>({
+    id:p.id,code:p.code,name:p.name,createdAt:p.createdAt,updatedAt:p.updatedAt,state:p.state
+  })),exportedAt:new Date().toISOString()};
   const text=JSON.stringify(data,null,2);
   if(isNativeApp()){
     try{
@@ -1946,13 +2264,15 @@ function exportJSON(){
 function importText(raw){
   try{
     const data=JSON.parse(raw);
-    const next=normalize(data);
-    const hasData=next.trades.length>0||next.init.shares>0||next.init.cost>0;
+    const next=normalizeStore(data);
+    const hasData=next.positions.some(p=>p.code||p.name||p.state.trades.length>0||p.state.init.shares>0||p.state.init.cost>0);
     if(!hasData) throw new Error('文件里没有可识别的账本数据');
-    state=next; sortTrades();
+    store=next; activeId=next.activeId; state=activePosition().state;
+    saveNow();
+    sortTrades();
     $('syncQty').checked=true;
     renderParams(); syncPlanInputs(); renderAll();
-    toast('已导入备份');
+    toast(`已导入备份（${store.positions.length} 个仓位）`);
     return true;
   }catch(e){ toast('导入失败：'+e.message,'err'); return false; }
 }
@@ -2004,6 +2324,24 @@ function bindEvents(){
     e.target.value='';
   });
   $('btnClear').addEventListener('click',clearAll);
+
+  $('positionSelect').addEventListener('change',e=>activatePosition(e.target.value));
+  $('btnNewPosition').addEventListener('click',openNewPosition);
+  $('btnPositions').addEventListener('click',openPositions);
+  $('positionsClose').addEventListener('click',closePositions);
+  $('positionsNew').addEventListener('click',()=>{ closePositions(); openNewPosition(); });
+  $('positionsModal').addEventListener('click',e=>{ if(e.target===$('positionsModal')) closePositions(); });
+  $('positionsList').addEventListener('click',e=>{
+    const sw=e.target.closest('[data-switch]');
+    if(sw){ activatePosition(sw.getAttribute('data-switch')); return; }
+    const del=e.target.closest('[data-delpos]');
+    if(del){ deletePosition(del.getAttribute('data-delpos')); }
+  });
+  $('newPosCancel').addEventListener('click',closeNewPosition);
+  $('newPosCreate').addEventListener('click',createPosition);
+  $('newPosModal').addEventListener('click',e=>{ if(e.target===$('newPosModal')) closeNewPosition(); });
+  $('p-code').addEventListener('change',updatePositionCode);
+  $('p-name').addEventListener('change',updatePositionName);
 
   const bind=(id,apply)=>{
     const el=$(id);
@@ -2072,19 +2410,21 @@ function bindEvents(){
 }
 
 function init(){
-  state=loadState();
+  store=loadStore();
   let isDemo=false;
-  if(!state){ state=demoState(); isDemo=true; }
-  state=normalize(state);
+  if(!store){ store=demoStore(); isDemo=true; }
+  activeId=store.activeId;
+  state=activePosition()?activePosition().state:normalize({});
   sortTrades();
   renderParams();
   syncPlanInputs();
   renderAll();
   bindEvents();
-  if(isDemo) setTimeout(()=>toast('已载入示例数据，可直接改参数'),400);
+  if(isDemo) setTimeout(()=>toast('已载入示例：2 个仓位，可左上角切换'),400);
+  else if(migratedFromLegacy) setTimeout(()=>toast('已把旧账本迁移为仓位，请补股票代码'),600);
 }
 
-window.__T={feeParts,feeOf,computePosition,availabilityAt,computePlan,computeBuyFirstPlan,computeBuyPlan,computeSellPlan,groupRounds,breakevenBuy,breakevenSell,getState:()=>state,renderAll,saveNow};
+window.__T={feeParts,feeOf,computePosition,availabilityAt,computePlan,computeBuyFirstPlan,computeBuyPlan,computeSellPlan,groupRounds,breakevenBuy,breakevenSell,getState:()=>state,getStore:()=>store,getActiveId:()=>activeId,getActivePosition:()=>activePosition(),activatePosition,saveNow,renderAll};
 init();
 
 })();
